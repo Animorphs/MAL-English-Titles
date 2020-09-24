@@ -7,8 +7,8 @@
 // @namespace    https://github.com/Animorphs/MAL-English-Titles
 // @require      https://code.jquery.com/jquery-3.5.1.min.js
 // @include      https://myanimelist.net/*
-// @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.js
-// @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.js
+// @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
+// @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
 // ==/UserScript==
 
 var myFunc = function() {
