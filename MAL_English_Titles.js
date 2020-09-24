@@ -2,7 +2,8 @@
 // @name         MAL English Titles
 // @version      1.01
 // @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
-// @author       https://github.com/Animorphs
+// @author       Animorphs
+// @namespace    https://github.com/Animorphs/
 // @require      https://code.jquery.com/jquery-3.5.1.min.js
 // @include      https://myanimelist.net/*
 // @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.js
