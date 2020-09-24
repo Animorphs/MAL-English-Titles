@@ -1,15 +1,12 @@
 // ==UserScript==
-// @name    MAL English Titles
-// @version 1
-// @require https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
-// @include https://myanimelist.net/topanime.php*
-// @include https://myanimelist.net/topmanga.php*
-// @include https://myanimelist.net/anime.php*
-// @include https://myanimelist.net/manga.php*
-// @include https://myanimelist.net/search/*
-// @include https://myanimelist.net/animelist/*
-// @include https://myanimelist.net/mangalist/*
-// @run-at document-end
+// @name         MAL English Titles
+// @version      1.01
+// @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
+// @author       https://github.com/Animorphs
+// @require      https://code.jquery.com/jquery-3.5.1.min.js
+// @include      https://myanimelist.net/*
+// @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.js
+// @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.js
 // ==/UserScript==
 
 var myFunc = function() {
@@ -20,9 +17,9 @@ var myFunc = function() {
         let i = 0;
         for (i = 0; i < titles.length; i++) { // for each show on page
             let titleDetail = titles[i].getElementsByClassName("di-ib clearfix"); // get anime ID, URL, etc.
-            let titleID = titleDetail[0].firstChild.id; // get ID (#area12345)
-            let titleURL = titleDetail[0].firstChild.href; // get url (https://myanimelist.net/anime/12345/Anime_Show_Link)
-            jQuery(titleID).load(titleURL + ' .title-english'); // replace empty ID div with english title grabbed from anime page
+            let titleID = titleDetail[0].firstChild.firstChild.id; // get ID (#area12345)
+            let titleURL = titleDetail[0].firstChild.firstChild.href; // get url (https://myanimelist.net/anime/12345/Anime_Show_Link)
+            jQuery(titleID).load(titleURL + ' .title-english').css("font-weight","bold"); // replace empty ID div with english title grabbed from anime page
         }
     }
 
@@ -36,7 +33,7 @@ var myFunc = function() {
             let titleDetail = titles[i].getElementsByTagName("a");
             let titleID = titleDetail[0].id;
             let titleURL = titleDetail[0].href;
-            jQuery(titleID).load(titleURL + ' .title-english');
+            jQuery(titleID).load(titleURL + ' .title-english').css("font-weight","bold");
         }
     }
 
@@ -50,9 +47,8 @@ var myFunc = function() {
             let titleDetail = titles[i].getElementsByClassName("data title clearfix"); // get url, and other stuff
             let titleURL = titleDetail[0].firstChild.href; // get url (https://myanimelist.net/anime/12345/Anime_Show_Link)
             let titleURLSliced = titleURL.slice(23); // get end part of url (/anime/12345/Anime_Show_Link)
-            jQuery('a[href="'+ titleURLSliced +'"]').prepend(jQuery('<div style="color:black;font-size:11px;"> ').last().load(titleURL + " .title-english")); // probably bad way of doing this. find link match in code, prepend english title in front of japanese title (and change color/size)
-            // this doesn't work for shows with special chars due to URL encoding, can't find exact match e.g. gintama° -> gintama%C2%B0
-            // the reason it works for Top Anime is that each anime table row has a unique ID, so it doesn't need to match back to a string literal, just the ID
+            let titleURLSlicedDecoded = decodeURIComponent(titleURLSliced) // convert any UTF-8 (such as /gintama%C2%B0) to ASCII (such as /gintama°)
+            jQuery('a[href="'+ titleURLSlicedDecoded +'"]').before(jQuery('<p style="font-weight:bold">').last().load(titleURL + " .title-english")); // find link match in code (last one), prepend english title in front of japanese title
         }
     }
 
@@ -66,7 +62,8 @@ var myFunc = function() {
             let titleDetail = titles[i].getElementsByClassName("data title");
             let titleURL = titleDetail[0].firstChild.href;
             let titleURLSliced = titleURL.slice(23);
-            jQuery('a[href="'+ titleURLSliced +'"]').prepend(jQuery('<div style="color:black;font-size:11px;"> ').last().load(titleURL + " .title-english"));
+            let titleURLSlicedDecoded = decodeURIComponent(titleURLSliced)
+            jQuery('a[href="'+ titleURLSlicedDecoded +'"]').before(jQuery('<p style="font-weight:bold">').last().load(titleURL + " .title-english"));
         }
     }
 
@@ -81,7 +78,7 @@ var myFunc = function() {
             let titleID = titles[i].id; // get div ID (#revArea12345)
             let titleIDsliced = titleID.slice(8); // get just the anime ID (12345)
             let titleURL = titles[i].href; // full URL of anime (https://myanimelist.net/anime/12345/Anime_Show_Link)
-            jQuery('a[href*="anime/'+ titleIDsliced + '"]').slice(1,2).prepend(jQuery('<div style="color:black;font-size:11px;">').load(titleURL + ' .title-english')); // another bad way. find link match for anime/id, get second element (title rather than picture), prepend english title
+            jQuery('a[href*="anime/'+ titleIDsliced + '"]').slice(1,2).before(jQuery('<p style="font-weight:bold">').load(titleURL + ' .title-english')); // find link match for anime/id, get second element (title rather than picture), prepend english title
         }
         //Manga Results
         let titlesManga = document.getElementsByClassName("hoverinfo_trigger fw-b");
@@ -92,7 +89,7 @@ var myFunc = function() {
                 let titleIDmanga = titlesManga[j].id;
                 let titleIDslicedManga = titleIDmanga.slice(8);
                 let titleURLmanga = titlesManga[j].href;
-                jQuery('a[href*="manga/'+ titleIDslicedManga + '"]').slice(1,2).prepend(jQuery('<div style="color:black;font-size:11px;">').load(titleURLmanga + ' .title-english'));
+                jQuery('a[href*="manga/'+ titleIDslicedManga + '"]').slice(1,2).before(jQuery('<p style="font-weight:bold">').load(titleURLmanga + ' .title-english'));
             }
         }
     }
@@ -105,9 +102,9 @@ var myFunc = function() {
         for (i = 0; i < titles.length; i++)
         {
             let titleID = titles[i].id;
-            let titleIDsliced = titleID.slice(6);
+            let titleIDsliced = titleID.slice(5);
             let titleURL = titles[i].href;
-            jQuery('a[href*="'+ titleIDsliced + '"]').slice(1,2).prepend(jQuery('<div style="color:black;font-size:11px;">').load(titleURL + ' .title-english'));
+            jQuery('a[href*="'+ titleIDsliced + '"]').slice(1,2).before(jQuery('<p style="font-weight:bold">').load(titleURL + ' .title-english'));
         }
     }
 
@@ -118,10 +115,10 @@ var myFunc = function() {
         let i = 0
         for (i = 0; i < titles.length; i++)
         {
-            let titleID = titles[i].id; //#sinfo12345
-            let titleIDsliced = titleID.slice(6) //cut off "#sinfo"
+            let titleID = titles[i].id; //sinfo12345
+            let titleIDsliced = titleID.slice(5) //cut off "sinfo"
             let titleURL = titles[i].href;
-            jQuery('a[href*="'+ titleIDsliced + '"]').slice(1,2).prepend(jQuery('<div style="color:black;font-size:11px;">').load(titleURL + ' .title-english'));
+            jQuery('a[href*="'+ titleIDsliced + '"]').slice(1,2).before(jQuery('<p style="font-weight:bold">').load(titleURL + ' .title-english'));
         }
     }
 };
