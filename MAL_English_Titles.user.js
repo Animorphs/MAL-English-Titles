@@ -250,7 +250,7 @@ function storeTranslated(type, count)
                         let mangaTitleDate = [mangaTitle, Date.now()];
                         if (!(mangaTitle == '' && checkManga(mangaID)))
                         {
-                            storeAnime(mangaID, mangaTitleDate);
+                            storeManga(mangaID, mangaTitleDate);
                         }
                     }
                     catch (err)
