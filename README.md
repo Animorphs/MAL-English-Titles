@@ -25,10 +25,10 @@ Add English titles for various Anime and Manga pages on MyAnimeList.net, whilst 
 
 ## 📸 Examples / Screenshots <a name = "screenshots"></a>
 ### Personal Anime / Manga List
-<img src='https://i.imgur.com/NsFRIOd.png'>
+<img src='https://i.imgur.com/KbTKPZW.png'>
 
 ### Top Anime / Manga
-<img src='https://i.imgur.com/3nlIbZn.png'>
+<img src='https://i.imgur.com/QBBR33t.png'>
 
 ### Search
-<img src='https://i.imgur.com/V5Kt6Lr.png'>
+<img src='https://i.imgur.com/pXIEkdO.png'>
