@@ -194,9 +194,9 @@ function translate()
 // Get anime/manga IDs and English titles from page, and send to be cached
 function storeTranslated(type, count)
 {
-    if (type == 'anime')
+    setTimeout(function()
     {
-        setTimeout(function()
+        if (type == 'anime')
         {
             for (let i = 0; i < count; i++)
             {
@@ -205,19 +205,19 @@ function storeTranslated(type, count)
                     let animeTitle = document.getElementById('anime' + i).innerText;
                     let animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
                     let animeTitleDate = [animeTitle, Date.now()];
-                    storeAnime(animeID, animeTitleDate);
+                    if (!(animeTitle == '' && checkAnime(animeID)))
+                    {
+                        storeAnime(animeID, animeTitleDate);
+                    }
                 }
                 catch (err)
                 {
                     console.log('anime' + err + ' ' + i)
                 }
             }
-        }, 3000);
-    }
+        }
 
-    else if (type == 'manga')
-    {
-        setTimeout(function()
+        else if (type == 'manga')
         {
             if (count == -1)
             {
@@ -228,9 +228,9 @@ function storeTranslated(type, count)
                         let mangaTitle = document.getElementById('manga' + i).innerText;
                         let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
                         let mangaTitleDate = [mangaTitle, Date.now()];
-                        if (mangaTitle)
+                        if (!(mangaTitle == '' && checkManga(mangaID)))
                         {
-                            storeManga(mangaID, mangaTitleDate);
+                            storeAnime(mangaID, mangaTitleDate);
                         }
                     }
                     catch (err)
@@ -248,9 +248,9 @@ function storeTranslated(type, count)
                         let mangaTitle = document.getElementById('manga' + i).innerText;
                         let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
                         let mangaTitleDate = [mangaTitle, Date.now()];
-                        if (mangaTitle)
+                        if (!(mangaTitle == '' && checkManga(mangaID)))
                         {
-                            storeManga(mangaID, mangaTitleDate);
+                            storeAnime(mangaID, mangaTitleDate);
                         }
                     }
                     catch (err)
@@ -259,8 +259,8 @@ function storeTranslated(type, count)
                     }
                 }
             }
-        }, 3000);
-    }
+        }
+    }, 3000);
 }
 
 // Store English titles for anime in cache
@@ -288,7 +288,7 @@ function checkAnime(ID)
             let dateOld = storedAnime[ID][1];
             if (dateNow - dateOld > 1814400000)
             {
-                console.log('Updated ' + ID + ' English Title');
+                console.log('Older than 3 weeks. Updated ' + ID + storedAnime[ID][0]);
                 return false;
             }
         }
@@ -304,11 +304,11 @@ function checkManga(ID)
     {
         if (storedManga[ID][0] == '')
         {
-            let dateNow = Date.now() + 1914400000;
+            let dateNow = Date.now();
             let dateOld = storedManga[ID][1];
             if (dateNow - dateOld > 1814400000)
             {
-                console.log('Updated ' + ID + ' English Title');
+                console.log('Older than 3 weeks. Updated ' + ID + storedManga[ID][0]);
                 return false;
             }
         }
