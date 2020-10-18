@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.21
+// @version      1.22
 // @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -67,6 +67,10 @@ function translate()
         let i = 0;
         for (i = 0; i < results.length; i++)
         {
+            if (document.getElementById('anime' + i))
+            {
+                continue;
+            }
             let Url = results[i].children[0].href;
             let UrlShort = Url.slice(23);
             let UrlShortDecoded = decodeURIComponent(UrlShort);
@@ -90,6 +94,10 @@ function translate()
         let i = 0;
         for (i = 0; i < results.length; i++)
         {
+            if (document.getElementById('manga' + i))
+            {
+                continue;
+            }
             let Url = results[i].children[0].href;
             let UrlShort = Url.slice(23);
             let UrlShortDecoded = decodeURIComponent(UrlShort);
@@ -330,4 +338,23 @@ if (!storedManga)
 }
 
 // Launch actual script
-translate();
+setTimeout(translate, 2000);
+
+// Detect AJAX calls upon infinite scroll, and load new translations
+if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
+{
+    (function(open)
+     {
+        XMLHttpRequest.prototype.open = function()
+        {
+            this.addEventListener("readystatechange", function()
+            {
+                if (this.readyState == 4 && this.status == 200)
+                {
+                    setTimeout(translate, 2000);
+                }
+            }, false);
+            open.apply(this, arguments);
+        };
+    })(XMLHttpRequest.prototype.open);
+}
