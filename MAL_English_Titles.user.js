@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.22
+// @version      1.23
 // @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -208,19 +208,13 @@ function storeTranslated(type, count)
         {
             for (let i = 0; i < count; i++)
             {
-                try
+
+                let animeTitle = document.getElementById('anime' + i).innerText;
+                let animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
+                let animeTitleDate = [animeTitle, Date.now()];
+                if (!(animeTitle == '' && checkAnime(animeID)))
                 {
-                    let animeTitle = document.getElementById('anime' + i).innerText;
-                    let animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
-                    let animeTitleDate = [animeTitle, Date.now()];
-                    if (!(animeTitle == '' && checkAnime(animeID)))
-                    {
-                        storeAnime(animeID, animeTitleDate);
-                    }
-                }
-                catch (err)
-                {
-                    console.log('anime' + err + ' ' + i)
+                    storeAnime(animeID, animeTitleDate);
                 }
             }
         }
@@ -231,19 +225,12 @@ function storeTranslated(type, count)
             {
                 for (let i = 10; i < 20; i++)
                 {
-                    try
+                    let mangaTitle = document.getElementById('manga' + i).innerText;
+                    let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
+                    let mangaTitleDate = [mangaTitle, Date.now()];
+                    if (!(mangaTitle == '' && checkManga(mangaID)))
                     {
-                        let mangaTitle = document.getElementById('manga' + i).innerText;
-                        let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                        let mangaTitleDate = [mangaTitle, Date.now()];
-                        if (!(mangaTitle == '' && checkManga(mangaID)))
-                        {
-                            storeManga(mangaID, mangaTitleDate);
-                        }
-                    }
-                    catch (err)
-                    {
-                        console.log('manga' + err + ' ' + i)
+                        storeManga(mangaID, mangaTitleDate);
                     }
                 }
             }
@@ -251,19 +238,12 @@ function storeTranslated(type, count)
             {
                 for (let i = 0; i < count; i++)
                 {
-                    try
+                    let mangaTitle = document.getElementById('manga' + i).innerText;
+                    let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
+                    let mangaTitleDate = [mangaTitle, Date.now()];
+                    if (!(mangaTitle == '' && checkManga(mangaID)))
                     {
-                        let mangaTitle = document.getElementById('manga' + i).innerText;
-                        let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                        let mangaTitleDate = [mangaTitle, Date.now()];
-                        if (!(mangaTitle == '' && checkManga(mangaID)))
-                        {
-                            storeManga(mangaID, mangaTitleDate);
-                        }
-                    }
-                    catch (err)
-                    {
-                        console.log('manga' + err + ' ' + i)
+                        storeManga(mangaID, mangaTitleDate);
                     }
                 }
             }
@@ -344,12 +324,12 @@ setTimeout(translate, 2000);
 if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
 {
     (function(open)
-     {
+    {
         XMLHttpRequest.prototype.open = function()
         {
             this.addEventListener("readystatechange", function()
             {
-                if (this.readyState == 4 && this.status == 200)
+                if (this.readyState == 4 && this.status == 200 && (this.responseURL.startsWith('https://myanimelist.net/animelist') || this.responseURL.startsWith('https://myanimelist.net/mangalist')))
                 {
                     setTimeout(translate, 2000);
                 }
