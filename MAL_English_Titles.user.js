@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.24
+// @version      1.25
 // @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -199,8 +199,8 @@ function translate()
     }
 };
 
-let z = 0;
-// Get anime/manga IDs and English titles from page, and send to be cached. Repeat after 5s twice, to ensure not storing blank still-loading results
+// Get anime/manga IDs and English titles from page, and send to be cached. Repeat every 5s, 10 times, to (hopefully) not store blank still-loading results
+var repeat = 0;
 function storeTranslated(type, count)
 {
     setTimeout(function()
@@ -249,9 +249,9 @@ function storeTranslated(type, count)
                 }
             }
         }
-        if (z == 0 || z == 1)
+        if (repeat < 10 && (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist')))
         {
-            z++;
+            repeat++;
             translate();
         }
     }, 5000);
@@ -339,6 +339,7 @@ if (location.href.includes('https://myanimelist.net/animelist') || location.href
             {
                 if (this.readyState == 4 && this.status == 200 && (this.responseURL.startsWith('https://myanimelist.net/animelist') || this.responseURL.startsWith('https://myanimelist.net/mangalist')))
                 {
+                    repeat = 0;
                     setTimeout(translate, 2000);
                 }
             }, false);
