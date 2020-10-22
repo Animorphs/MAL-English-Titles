@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.23
+// @version      1.24
 // @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -199,7 +199,8 @@ function translate()
     }
 };
 
-// Get anime/manga IDs and English titles from page, and send to be cached
+let z = 0;
+// Get anime/manga IDs and English titles from page, and send to be cached. Repeat after 5s twice, to ensure not storing blank still-loading results
 function storeTranslated(type, count)
 {
     setTimeout(function()
@@ -248,7 +249,12 @@ function storeTranslated(type, count)
                 }
             }
         }
-    }, 3000);
+        if (z == 0 || z == 1)
+        {
+            z++;
+            translate();
+        }
+    }, 5000);
 }
 
 // Store English titles for anime in cache
@@ -311,10 +317,12 @@ var storedManga = GM_getValue('manga');
 if (!storedAnime)
 {
     GM_setValue('anime',{});
+    storedAnime = {};
 }
 if (!storedManga)
 {
     GM_setValue('manga',{});
+    storedManga = {};
 }
 
 // Launch actual script
