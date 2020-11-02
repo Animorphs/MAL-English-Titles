@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.25
+// @version      1.26
 // @description  Add English Titles to various MyAnimeList pages, whilst still retaining Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -197,9 +197,75 @@ function translate()
         }
         storeTranslated('manga', i);
     }
+
+    // Seasonal Anime
+    else if (location.href.includes('https://myanimelist.net/anime/season'))
+    {
+        let results = document.getElementsByClassName('h2_anime_title');
+        let i = 0;
+        for (i = 0; i < results.length; i++)
+        {
+            let Url = results[i].children[0].href;
+            let UrlDecoded = decodeURIComponent(Url);
+            let ID = Url.split('/')[4];
+            if (checkAnime(ID))
+            {
+                $('.h2_anime_title > a[href="' + UrlDecoded + '"]').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>')
+            }
+            else
+            {
+                $('.h2_anime_title > a[href="' + UrlDecoded + '"]').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
+            }
+        }
+        storeTranslated('anime', i);
+    }
+
+    // Shared Anime
+    else if (location.href.includes('https://myanimelist.net/shared.php') && !location.href.includes('&type=manga'))
+    {
+        let results = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit)');
+        let i = 1;
+        for (i = 1; i < results.length; i++)
+        {
+            let Url = results[i].href;
+            let UrlShort = Url.slice(23);
+            let UrlShortDecoded = decodeURIComponent(UrlShort);
+            let ID = Url.split('/')[4];
+            if (checkAnime(ID))
+            {
+                $('a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>')
+            }
+            else
+            {
+                $('a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
+            }
+        }
+    }
+
+    // Shared Manga
+    else if (location.href.includes('https://myanimelist.net/shared.php') && location.href.includes('&type=manga'))
+    {
+        let results = document.querySelectorAll('[href*="/manga/"]:not(.Lightbox_AddEdit)');
+        let i = 0;
+        for (i = 0; i < results.length; i++)
+        {
+            let Url = results[i].href;
+            let UrlShort = Url.slice(23);
+            let UrlShortDecoded = decodeURIComponent(UrlShort);
+            let ID = Url.split('/')[4];
+            if (checkManga(ID))
+            {
+                $('a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>')
+            }
+            else
+            {
+                $('a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
+            }
+        }
+    }
 };
 
-// Get anime/manga IDs and English titles from page, and send to be cached. Repeat every 5s, 10 times, to (hopefully) not store blank still-loading results
+// Get anime/manga IDs and English titles from page, and send to be cached. For large pages, repeat every 5s, 10 times, to (hopefully) not store blank still-loading results
 var repeat = 0;
 function storeTranslated(type, count)
 {
@@ -209,7 +275,6 @@ function storeTranslated(type, count)
         {
             for (let i = 0; i < count; i++)
             {
-
                 let animeTitle = document.getElementById('anime' + i).innerText;
                 let animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
                 let animeTitleDate = [animeTitle, Date.now()];
@@ -219,7 +284,6 @@ function storeTranslated(type, count)
                 }
             }
         }
-
         else if (type == 'manga')
         {
             if (count == -1)
@@ -249,7 +313,7 @@ function storeTranslated(type, count)
                 }
             }
         }
-        if (repeat < 10 && (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist')))
+        if (repeat < 10 && (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist') || location.href.includes('https://myanimelist.net/anime/season')))
         {
             repeat++;
             translate();
