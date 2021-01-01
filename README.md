@@ -1,5 +1,5 @@
 # MyAnimeList English Titles
-Add English titles for various Anime and Manga pages on MyAnimeList.net, whilst still retaining the Japanese titles.
+Add English titles for various Anime and Manga pages on MyAnimeList.net, whilst still displaying the Japanese titles.
 
 <b>Note:</b> If you are getting timed out of MAL after installation, please see the [FAQ](#faq).
 
