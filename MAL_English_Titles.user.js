@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.30.0
+// @version      1.31.0
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -30,14 +30,8 @@ function translate()
                 let Url = results[i].children[0].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkAnime(ID))
-                {
-                    $('.hoverinfo_trigger.fl-l.fs14.fw-b.anime_ranking_h3 > a[href="' + UrlDecoded + '"]').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('.hoverinfo_trigger.fl-l.fs14.fw-b.anime_ranking_h3 > a[href="' + UrlDecoded + '"]').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = '.hoverinfo_trigger.fl-l.fs14.fw-b.anime_ranking_h3 > a[href="' + UrlDecoded + '"]';
+                addTranslation('anime', i, Url, ID, selector);
             }
         }
         storeTranslated('anime', i);
@@ -55,14 +49,8 @@ function translate()
                 let Url = results[i].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkManga(ID))
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fs14.fw-b').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fs14.fw-b').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fs14.fw-b';
+                addTranslation('manga', i, Url, ID, selector);
             }
         }
         storeTranslated('manga', i);
@@ -81,14 +69,8 @@ function translate()
                 let UrlShort = Url.slice(23);
                 let UrlShortDecoded = decodeURIComponent(UrlShort);
                 let ID = Url.split('/')[4];
-                if (checkAnime(ID))
-                {
-                    $('.data.title.clearfix > a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('.data.title.clearfix > a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = '.data.title.clearfix > a[href="' + UrlShortDecoded + '"]';
+                addTranslation('anime', i, Url, ID, selector);
             }
         }
         storeTranslated('anime', i);
@@ -107,14 +89,8 @@ function translate()
                 let UrlShort = Url.slice(23);
                 let UrlShortDecoded = decodeURIComponent(UrlShort);
                 let ID = Url.split('/')[4];
-                if (checkManga(ID))
-                {
-                    $('.data.title > a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('.data.title > a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = '.data.title > a[href="' + UrlShortDecoded + '"]';
+                addTranslation('manga', i, Url, ID, selector);
             }
         }
         storeTranslated('manga', i);
@@ -123,7 +99,7 @@ function translate()
     // Search Generic
     else if (location.href.includes('https://myanimelist.net/search/'))
     {
-        //Anime Results
+        // Anime Results
         let resultsAnime = document.getElementsByClassName('hoverinfo_trigger fw-b fl-l');
         for (let i = 0; i < 10; i++)
         {
@@ -132,18 +108,12 @@ function translate()
                 let Url = resultsAnime[i].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkAnime(ID))
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b.fl-l').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b.fl-l').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b.fl-l';
+                addTranslation('anime', i, Url, ID, selector);
             }
         }
 
-        //Manga Results
+        // Manga Results
         let resultsManga = document.getElementsByClassName('hoverinfo_trigger fw-b');
         for (let i = 10; i < 20; i++)
         {
@@ -152,17 +122,11 @@ function translate()
                 let Url = resultsManga[i].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkManga(ID))
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b';
+                addTranslation('manga', i, Url, ID, selector);
             }
         }
-        storeTranslated('anime', 9);
+        storeTranslated('anime', 10);
         storeTranslated('manga', -1);
     }
 
@@ -178,14 +142,8 @@ function translate()
                 let Url = results[i].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkAnime(ID))
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b.fl-l').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b.fl-l').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b.fl-l';
+                addTranslation('anime', i, Url, ID, selector);
             }
         }
         storeTranslated('anime', i);
@@ -203,14 +161,8 @@ function translate()
                 let Url = results[i].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkManga(ID))
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b';
+                addTranslation('manga', i, Url, ID, selector);
             }
         }
         storeTranslated('manga', i);
@@ -228,14 +180,8 @@ function translate()
                 let Url = results[i].href;
                 let UrlDecoded = decodeURIComponent(Url);
                 let ID = Url.split('/')[4];
-                if (checkAnime(ID))
-                {
-                    $('a[href="' + UrlDecoded + '"].link-title').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlDecoded + '"].link-title').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlDecoded + '"].link-title';
+                addTranslation('anime', i, Url, ID, selector);
             }
         }
         storeTranslated('anime', i);
@@ -257,14 +203,8 @@ function translate()
                     let Url = results[i].href;
                     let UrlDecoded = decodeURIComponent(Url);
                     let ID = Url.split('/')[4];
-                    if (checkAnime(ID))
-                    {
-                        $('a[href="' + UrlDecoded + '"].link-title').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlDecoded + '"].link-title').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                    }
+                    let selector = 'a[href="' + UrlDecoded + '"].link-title';
+                    addTranslation('anime', i, Url, ID, selector);
                 }
             }
         }
@@ -280,14 +220,8 @@ function translate()
                     let Url = results[i].href;
                     let UrlDecoded = decodeURIComponent(Url);
                     let ID = Url.split('/')[4];
-                    if (checkAnime(ID))
-                    {
-                        $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                    }
+                    let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b';
+                    addTranslation('anime', i, Url, ID, selector);
                 }
             }
         }
@@ -310,14 +244,8 @@ function translate()
                     let Url = results[i].href;
                     let UrlDecoded = decodeURIComponent(Url);
                     let ID = Url.split('/')[4];
-                    if (checkManga(ID))
-                    {
-                        $('a[href="' + UrlDecoded + '"].link-title').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlDecoded + '"].link-title').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                    }
+                    let selector = 'a[href="' + UrlDecoded + '"].link-title';
+                    addTranslation('manga', i, Url, ID, selector);
                 }
             }
         }
@@ -333,14 +261,8 @@ function translate()
                     let Url = results[i].href;
                     let UrlDecoded = decodeURIComponent(Url);
                     let ID = Url.split('/')[4];
-                    if (checkManga(ID))
-                    {
-                        $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                    }
+                    let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b';
+                    addTranslation('manga', i, Url, ID, selector);
                 }
             }
         }
@@ -363,14 +285,8 @@ function translate()
                     let Url = results[i].href;
                     let UrlDecoded = decodeURIComponent(Url);
                     let ID = Url.split('/')[4];
-                    if (checkAnime(ID))
-                    {
-                        $('a[href="' + UrlDecoded + '"].link-title').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlDecoded + '"].link-title').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                    }
+                    let selector = 'a[href="' + UrlDecoded + '"].link-title';
+                    addTranslation('anime', i, Url, ID, selector);
                 }
             }
         }
@@ -386,14 +302,8 @@ function translate()
                     let Url = results[i].href;
                     let UrlDecoded = decodeURIComponent(Url);
                     let ID = Url.split('/')[4];
-                    if (checkAnime(ID))
-                    {
-                        $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                    }
+                    let selector = 'a[href="' + UrlDecoded + '"].hoverinfo_trigger.fw-b';
+                    addTranslation('anime', i, Url, ID, selector);
                 }
             }
         }
@@ -413,14 +323,8 @@ function translate()
                 let UrlShort = Url.slice(23);
                 let UrlShortDecoded = decodeURIComponent(UrlShort);
                 let ID = Url.split('/')[4];
-                if (checkAnime(ID))
-                {
-                    $('a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlShortDecoded + '"]';
+                addTranslation('anime', i, Url, ID, selector);
             }
         }
         storeTranslated('anime', i);
@@ -439,14 +343,8 @@ function translate()
                 let UrlShort = Url.slice(23);
                 let UrlShortDecoded = decodeURIComponent(UrlShort);
                 let ID = Url.split('/')[4];
-                if (checkManga(ID))
-                {
-                    $('a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="manga' + i + '">' + storedManga[ID][0] + '</div>');
-                }
-                else
-                {
-                    $('a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="manga' + i + '">').load(Url + ' .title-english'));
-                }
+                let selector = 'a[href="' + UrlShortDecoded + '"]';
+                addTranslation('manga', i, Url, ID, selector);
             }
         }
         storeTranslated('manga', i);
@@ -467,16 +365,10 @@ function translate()
                 let UrlShort = Url.slice(23);
                 let UrlShortDecoded = decodeURIComponent(UrlShort);
                 let ID = Url.split('=')[1];
+                let selector = 'a[href="' + UrlShortDecoded + '"]';
                 if (!AnimeIDs.includes(ID))
                 {
-                    if (checkAnime(ID))
-                    {
-                        $('a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="anime' + i + '">' + storedAnime[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="anime' + i + '">').load(Url + ' .title-english'));
-                    }
+                    addTranslation('anime', i, Url, ID, selector);
                 }
                 AnimeIDs.push(ID);
             }
@@ -486,7 +378,7 @@ function translate()
         let resultsManga = document.querySelectorAll('[href*="/manga.php"]');
         let MangaIDs = [];
         let j = 1;
-        for (j; j < resultsManga.length; j++)
+        for (j; j < resultsManga.length-1; j++)
         {
             if (!document.getElementById('manga' + j))
             {
@@ -494,16 +386,56 @@ function translate()
                 let UrlShort = Url.slice(23);
                 let UrlShortDecoded = decodeURIComponent(UrlShort);
                 let ID = Url.split('=')[1];
+                let selector = 'a[href="' + UrlShortDecoded + '"]';
                 if (!MangaIDs.includes(ID))
                 {
-                    if (checkManga(ID))
-                    {
-                        $('a[href="' + UrlShortDecoded + '"]').before('<div style="font-weight:bold" id="manga' + j + '">' + storedManga[ID][0] + '</div>');
-                    }
-                    else
-                    {
-                        $('a[href="' + UrlShortDecoded + '"]').before($('<div style="font-weight:bold" id="manga' + j + '">').load(Url + ' .title-english'));
-                    }
+                    addTranslation('manga', j, Url, ID, selector);
+                }
+                MangaIDs.push(ID);
+            }
+        }
+        storeTranslated('anime', i);
+        storeTranslated('manga', j);
+    }
+
+    // People
+    else if (location.href.includes('https://myanimelist.net/people'))
+    {
+        // Anime Results
+        let resultsAnime = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit)');
+        let AnimeIDs = [];
+        let i = 1;
+        for (i; i < resultsAnime.length; i++)
+        {
+            if (!document.getElementById('anime' + i))
+            {
+                let Url = resultsAnime[i].href;
+                let UrlDecoded = decodeURIComponent(Url);
+                let ID = Url.split('/')[4];
+                let selector = 'a[href="' + UrlDecoded + '"]:not(.picSurround > a)';
+                if (!AnimeIDs.includes(ID))
+                {
+                    addTranslation('anime', i, Url, ID, selector);
+                }
+                AnimeIDs.push(ID);
+            }
+        }
+
+        // Manga Results
+        let resultsManga = document.querySelectorAll('[href*="/manga/"]:not(.Lightbox_AddEdit)');
+        let MangaIDs = [];
+        let j = 0;
+        for (j; j < resultsManga.length; j+=2)
+        {
+            if (!document.getElementById('manga' + j))
+            {
+                let Url = resultsManga[j].href;
+                let UrlDecoded = decodeURIComponent(Url);
+                let ID = Url.split('/')[4];
+                let selector = 'a[href="' + UrlDecoded + '"]:not(.picSurround > a)';
+                if (!MangaIDs.includes(ID))
+                {
+                    addTranslation('manga', j, Url, ID, selector);
                 }
                 MangaIDs.push(ID);
             }
@@ -512,6 +444,34 @@ function translate()
         storeTranslated('manga', j);
     }
 };
+
+function addTranslation(type, count, url, ID, selector)
+{
+    let styleId = '<div style="font-weight:bold" id="' + type + count + '">'
+    let styleIdEnd = '</div>';
+    if (type == 'manga')
+    {
+        if (checkManga(ID))
+        {
+            $(selector).before(styleId + storedManga[ID][0] + styleIdEnd);
+        }
+        else
+        {
+            $(selector).before($(styleId).load(url + ' .title-english'));
+        }
+    }
+    else if (type == 'anime')
+    {
+        if (checkAnime(ID))
+        {
+            $(selector).before(styleId + storedAnime[ID][0] + styleIdEnd);
+        }
+        else
+        {
+            $(selector).before($(styleId).load(url + ' .title-english'));
+        }
+    }
+}
 
 // Get anime/manga IDs and English titles from page, and send to be cached. Repeat storage so as to not store blank still-loading results
 function storeTranslated(type, count)
@@ -522,12 +482,22 @@ function storeTranslated(type, count)
         {
             for (let i = 0; i < count; i++)
             {
-                let animeTitle = document.getElementById('anime' + i).innerText;
-                let animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
-                let animeTitleDate = [animeTitle, Date.now()];
-                if (!(animeTitle == '' && checkAnime(animeID)))
+                if (document.getElementById('anime' + i))
                 {
-                    storeAnime(animeID, animeTitleDate);
+                    let animeTitle = document.getElementById('anime' + i).innerText;
+                    let animeID = '';
+                    if (location.href.includes('https://myanimelist.net/history'))
+                    {
+                        animeID = document.getElementById('anime' + i).nextSibling.href.split('id=')[1];
+                    }
+                    else
+                    {
+                        animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
+                    }
+                    if (!(animeTitle == '' && checkAnime(animeID)))
+                    {
+                        storeAnime(animeID, animeTitle);
+                    }
                 }
             }
         }
@@ -539,10 +509,9 @@ function storeTranslated(type, count)
                 {
                     let mangaTitle = document.getElementById('manga' + i).innerText;
                     let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                    let mangaTitleDate = [mangaTitle, Date.now()];
                     if (!(mangaTitle == '' && checkManga(mangaID)))
                     {
-                        storeManga(mangaID, mangaTitleDate);
+                        storeManga(mangaID, mangaTitle);
                     }
                 }
             }
@@ -550,12 +519,22 @@ function storeTranslated(type, count)
             {
                 for (let i = 0; i < count; i++)
                 {
-                    let mangaTitle = document.getElementById('manga' + i).innerText;
-                    let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                    let mangaTitleDate = [mangaTitle, Date.now()];
-                    if (!(mangaTitle == '' && checkManga(mangaID)))
+                    if (document.getElementById('manga' + i))
                     {
-                        storeManga(mangaID, mangaTitleDate);
+                        let mangaTitle = document.getElementById('manga' + i).innerText;
+                        let mangaID = '';
+                        if (location.href.includes('https://myanimelist.net/history'))
+                        {
+                            mangaID = document.getElementById('manga' + i).nextSibling.href.split('id=')[1];
+                        }
+                        else
+                        {
+                            mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
+                        }
+                        if (!(mangaTitle == '' && checkManga(mangaID)))
+                        {
+                            storeManga(mangaID, mangaTitle);
+                        }
                     }
                 }
             }
@@ -563,22 +542,22 @@ function storeTranslated(type, count)
         if (repeat < 10)
         {
             repeat++;
-            translate();
+            storeTranslated(type, count);
         }
     }, 5000);
 }
 
 // Store English titles for anime in cache
-function storeAnime(ID, engTitleDate)
+function storeAnime(ID, engTitle)
 {
-    storedAnime[ID] = engTitleDate;
+    storedAnime[ID] = [engTitle, Date.now()];
     GM_setValue('anime', storedAnime);
 }
 
 // Store English titles for manga in cache
-function storeManga(ID, engTitleDate)
+function storeManga(ID, engTitle)
 {
-    storedManga[ID] = engTitleDate;
+    storedManga[ID] = [engTitle, Date.now()];
     GM_setValue('manga', storedManga);
 }
 
@@ -591,14 +570,15 @@ function checkAnime(ID)
         {
             let dateNow = Date.now();
             let dateOld = storedAnime[ID][1];
-            if (dateNow - dateOld > 1814400000)
+            if (dateNow - dateOld > 2628000000)
             {
-                console.log('Older than 3 weeks. Updated ' + ID + storedAnime[ID][0]);
+                console.log('Updated anime ' + ID);
                 return false;
             }
         }
         return true;
     }
+    console.log('New anime ' + ID);
     return false;
 }
 
@@ -611,14 +591,15 @@ function checkManga(ID)
         {
             let dateNow = Date.now();
             let dateOld = storedManga[ID][1];
-            if (dateNow - dateOld > 1814400000)
+            if (dateNow - dateOld > 2628000000)
             {
-                console.log('Older than 3 weeks. Updated ' + ID + storedManga[ID][0]);
+                console.log('Updated manga ' + ID);
                 return false;
             }
         }
         return true;
     }
+    console.log('New manga ' + ID);
     return false;
 }
 
@@ -634,6 +615,21 @@ if (!storedManga)
 {
     GM_setValue('manga',{});
     storedManga = {};
+}
+
+// Save English title of current anime or manga page
+if (location.href.match(/https:\/\/myanimelist\.net\/(anime|manga)\/([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/.*/))
+{
+    let title = document.getElementsByClassName('title-english')[0].innerText;
+    let id = location.href.split('/')[4];
+    if (location.href.includes('/anime/'))
+    {
+        storeAnime(id, title);
+    }
+    else if (location.href.includes('/manga/'))
+    {
+        storeManga(id, title);
+    }
 }
 
 // Detect AJAX calls upon infinite scroll, and load new translations
