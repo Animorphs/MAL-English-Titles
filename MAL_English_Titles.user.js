@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.31.0
+// @version      1.31.1
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -451,7 +451,7 @@ function addTranslation(type, count, url, ID, selector)
     let styleIdEnd = '</div>';
     if (type == 'manga')
     {
-        if (checkManga(ID))
+        if (checkManga(ID, true))
         {
             $(selector).before(styleId + storedManga[ID][0] + styleIdEnd);
         }
@@ -462,7 +462,7 @@ function addTranslation(type, count, url, ID, selector)
     }
     else if (type == 'anime')
     {
-        if (checkAnime(ID))
+        if (checkAnime(ID, true))
         {
             $(selector).before(styleId + storedAnime[ID][0] + styleIdEnd);
         }
@@ -494,7 +494,7 @@ function storeTranslated(type, count)
                     {
                         animeID = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
                     }
-                    if (!(animeTitle == '' && checkAnime(animeID)))
+                    if (!(animeTitle == '' && checkAnime(animeID, false)))
                     {
                         storeAnime(animeID, animeTitle);
                     }
@@ -509,7 +509,7 @@ function storeTranslated(type, count)
                 {
                     let mangaTitle = document.getElementById('manga' + i).innerText;
                     let mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                    if (!(mangaTitle == '' && checkManga(mangaID)))
+                    if (!(mangaTitle == '' && checkManga(mangaID, false)))
                     {
                         storeManga(mangaID, mangaTitle);
                     }
@@ -531,7 +531,7 @@ function storeTranslated(type, count)
                         {
                             mangaID = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
                         }
-                        if (!(mangaTitle == '' && checkManga(mangaID)))
+                        if (!(mangaTitle == '' && checkManga(mangaID, false)))
                         {
                             storeManga(mangaID, mangaTitle);
                         }
@@ -562,7 +562,7 @@ function storeManga(ID, engTitle)
 }
 
 // Check if English title for anime is cached
-function checkAnime(ID)
+function checkAnime(ID, print)
 {
     if (storedAnime.hasOwnProperty(ID))
     {
@@ -572,18 +572,24 @@ function checkAnime(ID)
             let dateOld = storedAnime[ID][1];
             if (dateNow - dateOld > 2628000000)
             {
-                console.log('Updated anime ' + ID);
+                if (print)
+                {
+                    console.log('Updated anime ' + ID);
+                }
                 return false;
             }
         }
         return true;
     }
-    console.log('New anime ' + ID);
+    if (print)
+    {
+        console.log('New anime ' + ID);
+    }
     return false;
 }
 
 // Check if English title for manga is cached
-function checkManga(ID)
+function checkManga(ID, print)
 {
     if (storedManga.hasOwnProperty(ID))
     {
@@ -593,13 +599,19 @@ function checkManga(ID)
             let dateOld = storedManga[ID][1];
             if (dateNow - dateOld > 2628000000)
             {
-                console.log('Updated manga ' + ID);
+                if (print)
+                {
+                    console.log('Updated manga ' + ID);
+                }
                 return false;
             }
         }
         return true;
     }
-    console.log('New manga ' + ID);
+    if (print)
+    {
+        console.log('New manga ' + ID);
+    }
     return false;
 }
 
