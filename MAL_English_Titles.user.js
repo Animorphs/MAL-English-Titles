@@ -684,4 +684,4 @@ if (location.href.includes('https://myanimelist.net/animelist') || location.href
 }
 
 // Launch actual script
-setTimeout(translate, 2000);
+translate();
