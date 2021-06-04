@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      1.31.3
+// @version      1.31.4
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -22,8 +22,16 @@ function translate()
     if (location.href.match(/https:\/\/myanimelist\.net\/(anime|manga)\/([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/) || location.href.match(/https:\/\/myanimelist\.net\/(anime|manga)\.php\?id\=([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/))
     {
         let titleHtml = document.getElementsByClassName('title-english')[0];
-        let id = location.href.split('/')[4];
-        if (location.href.includes('/anime/'))
+        let id = 0;
+        if (location.href.includes('.php'))
+        {
+            id = location.href.split('id=')[1];
+        }
+        else
+        {
+            id = location.href.split('/')[4];
+        }
+        if (location.href.includes('/anime'))
         {
             console.log('Updated anime ' + id);
             if (titleHtml)
@@ -36,7 +44,7 @@ function translate()
                 storeAnime(id, '');
             }
         }
-        else if (location.href.includes('/manga/'))
+        else if (location.href.includes('/manga'))
         {
             console.log('Updated manga ' + id);
             if (titleHtml)
