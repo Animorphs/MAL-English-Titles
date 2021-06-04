@@ -73,7 +73,6 @@ function translate()
                 addTranslation('anime', i, url, id, selector);
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Top Manga
@@ -92,7 +91,6 @@ function translate()
                 addTranslation('manga', i, url, id, selector);
             }
         }
-        storeTranslated('manga', i);
     }
 
     // Anime List
@@ -112,7 +110,6 @@ function translate()
                 addTranslation('anime', i, url, id, selector);
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Manga List
@@ -132,7 +129,6 @@ function translate()
                 addTranslation('manga', i, url, id, selector);
             }
         }
-        storeTranslated('manga', i);
     }
 
     // Search Generic
@@ -165,8 +161,6 @@ function translate()
                 addTranslation('manga', i, url, id, selector);
             }
         }
-        storeTranslated('anime', 10);
-        storeTranslated('manga', -1);
     }
 
     // Search Anime
@@ -185,7 +179,6 @@ function translate()
                 addTranslation('anime', i, url, id, selector);
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Search Manga
@@ -204,7 +197,6 @@ function translate()
                 addTranslation('manga', i, url, id, selector);
             }
         }
-        storeTranslated('manga', i);
     }
 
     // Seasonal Anime
@@ -223,7 +215,6 @@ function translate()
                 addTranslation('anime', i, url, id, selector);
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Anime Genres
@@ -264,7 +255,6 @@ function translate()
                 }
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Manga Genres
@@ -305,7 +295,6 @@ function translate()
                 }
             }
         }
-        storeTranslated('manga', i);
     }
 
     // Anime Producers
@@ -346,7 +335,6 @@ function translate()
                 }
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Shared Anime
@@ -366,7 +354,6 @@ function translate()
                 addTranslation('anime', i, url, id, selector);
             }
         }
-        storeTranslated('anime', i);
     }
 
     // Shared Manga
@@ -386,7 +373,6 @@ function translate()
                 addTranslation('manga', i, url, id, selector);
             }
         }
-        storeTranslated('manga', i);
     }
 
     // History
@@ -433,8 +419,6 @@ function translate()
                 mangaIds.push(id);
             }
         }
-        storeTranslated('anime', i);
-        storeTranslated('manga', j);
     }
 
     // People
@@ -479,8 +463,6 @@ function translate()
                 mangaIds.push(id);
             }
         }
-        storeTranslated('anime', i);
-        storeTranslated('manga', j);
     }
 }
 
@@ -496,7 +478,7 @@ function addTranslation(type, count, url, id, selector)
         }
         else
         {
-            getEnglishTitle(type, count, url, selector);
+            getEnglishTitle(type, count, url, id, selector);
         }
     }
     else if (type == 'anime')
@@ -507,12 +489,12 @@ function addTranslation(type, count, url, id, selector)
         }
         else
         {
-            getEnglishTitle(type, count, url, selector);
+            getEnglishTitle(type, count, url, id, selector);
         }
     }
 }
 
-function getEnglishTitle(type, count, url, selector) {
+function getEnglishTitle(type, count, url, id, selector) {
     // Create new request
     let xhr = new XMLHttpRequest();
     xhr.responseType = 'document';
@@ -531,6 +513,12 @@ function getEnglishTitle(type, count, url, selector) {
                 englishTitleHTML = '';
             }
 
+            if (type === 'anime') {
+                storeAnime(id, englishTitleHTML);
+            } else if (type === 'manga') {
+                storeManga(id, englishTitleHTML);
+            }
+
             document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + englishTitleHTML + styleIdEnd);
         }
     }
@@ -538,80 +526,6 @@ function getEnglishTitle(type, count, url, selector) {
     // Send the request
     xhr.open('GET', url);
     xhr.send();
-}
-
-// Get anime/manga IDs and English titles from page, and send to be cached. Repeat storage so as to not store blank still-loading results
-function storeTranslated(type, count)
-{
-    setTimeout(function()
-    {
-        if (type == 'anime')
-        {
-            for (let i = 0; i < count; i++)
-            {
-                if (document.getElementById('anime' + i))
-                {
-                    let animeTitle = document.getElementById('anime' + i).innerText;
-                    let animeId = '';
-                    if (location.href.includes('https://myanimelist.net/history'))
-                    {
-                        animeId = document.getElementById('anime' + i).nextSibling.href.split('id=')[1];
-                    }
-                    else
-                    {
-                        animeId = document.getElementById('anime' + i).nextSibling.href.split('/')[4];
-                    }
-                    if (!(animeTitle == '' && checkAnime(animeId, false)))
-                    {
-                        storeAnime(animeId, animeTitle);
-                    }
-                }
-            }
-        }
-        else if (type == 'manga')
-        {
-            if (count == -1)
-            {
-                for (let i = 10; i < 20; i++)
-                {
-                    let mangaTitle = document.getElementById('manga' + i).innerText;
-                    let mangaId = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                    if (!(mangaTitle == '' && checkManga(mangaId, false)))
-                    {
-                        storeManga(mangaId, mangaTitle);
-                    }
-                }
-            }
-            else
-            {
-                for (let i = 0; i < count; i++)
-                {
-                    if (document.getElementById('manga' + i))
-                    {
-                        let mangaTitle = document.getElementById('manga' + i).innerText;
-                        let mangaId = '';
-                        if (location.href.includes('https://myanimelist.net/history'))
-                        {
-                            mangaId = document.getElementById('manga' + i).nextSibling.href.split('id=')[1];
-                        }
-                        else
-                        {
-                            mangaId = document.getElementById('manga' + i).nextSibling.href.split('/')[4];
-                        }
-                        if (!(mangaTitle == '' && checkManga(mangaId, false)))
-                        {
-                            storeManga(mangaId, mangaTitle);
-                        }
-                    }
-                }
-            }
-        }
-        if (repeat < 10)
-        {
-            repeat++;
-            storeTranslated(type, count);
-        }
-    }, 5000);
 }
 
 // Store English titles for anime in cache
@@ -697,7 +611,6 @@ if (!storedManga)
 }
 
 // Detect AJAX calls upon infinite scroll, and load new translations
-var repeat = 0;
 if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
 {
     (function(open)
@@ -708,7 +621,6 @@ if (location.href.includes('https://myanimelist.net/animelist') || location.href
             {
                 if (this.readyState == 4 && this.status == 200 && (this.responseURL.startsWith('https://myanimelist.net/animelist') || this.responseURL.startsWith('https://myanimelist.net/mangalist')))
                 {
-                    repeat = 0;
                     setTimeout(translate, 2000);
                 }
             }, false);
