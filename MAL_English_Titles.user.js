@@ -6,8 +6,6 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @namespace    https://github.com/Animorphs/MAL-English-Titles
-// @require      https://code.jquery.com/jquery-3.5.1.min.js
-// @require      https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @include      https://myanimelist.net/*
 // @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
 // @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
@@ -234,7 +232,7 @@ function translate()
         let i = 0;
 
         // Tile View
-        if ($('.btn-view-style.js-btn-view-style.tile.on')[0])
+        if (document.getElementsByClassName('btn-view-style js-btn-view-style tile on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (i; i < results.length; i++)
@@ -251,7 +249,7 @@ function translate()
         }
 
         // List View
-        else if ($('.btn-view-style.js-btn-view-style.list.on')[0])
+        else if (document.getElementsByClassName('btn-view-style js-btn-view-style list on')[0])
         {
             let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
             for (i; i < results.length; i++)
@@ -275,7 +273,7 @@ function translate()
         let i = 0;
 
         // Tile View
-        if ($('.btn-view-style.js-btn-view-style.tile.on')[0])
+        if (document.getElementsByClassName('btn-view-style js-btn-view-style tile on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (i; i < results.length; i++)
@@ -292,7 +290,7 @@ function translate()
         }
 
         // List View
-        else if ($('.btn-view-style.js-btn-view-style.list.on')[0])
+        else if (document.getElementsByClassName('btn-view-style js-btn-view-style list on')[0])
         {
             let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
             for (i; i < results.length; i++)
@@ -316,7 +314,7 @@ function translate()
         let i = 0;
 
         // Tile View
-        if ($('.btn-view-style.js-btn-view-style.tile.on')[0])
+        if (document.getElementsByClassName('btn-view-style js-btn-view-style tile on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (i; i < results.length; i++)
@@ -333,7 +331,7 @@ function translate()
         }
 
         // List View
-        else if ($('.btn-view-style.js-btn-view-style.list.on')[0])
+        else if (document.getElementsByClassName('btn-view-style js-btn-view-style list on')[0])
         {
             let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
             for (i; i < results.length; i++)
@@ -494,24 +492,52 @@ function addTranslation(type, count, url, id, selector)
     {
         if (checkManga(id))
         {
-            $(selector).before(styleId + storedManga[id][0] + styleIdEnd);
+            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
         }
         else
         {
-            $(selector).before($(styleId).load(url + ' .title-english'));
+            getEnglishTitle(type, count, url, selector);
         }
     }
     else if (type == 'anime')
     {
         if (checkAnime(id))
         {
-            $(selector).before(styleId + storedAnime[id][0] + styleIdEnd);
+            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + storedAnime[id][0] + styleIdEnd);
         }
         else
         {
-            $(selector).before($(styleId).load(url + ' .title-english'));
+            getEnglishTitle(type, count, url, selector);
         }
     }
+}
+
+function getEnglishTitle(type, count, url, selector) {
+    // Create new request
+    let xhr = new XMLHttpRequest();
+    xhr.responseType = 'document';
+
+    // Set the callback
+    xhr.onload = function() {
+        if (xhr.readyState === xhr.DONE && xhr.status === 200 && xhr.responseXML !== null) {
+            let styleId = '<div style="font-weight: bold" id="' + type + count + '">';
+            let styleIdEnd = '</div>';
+            let englishTitle = xhr.responseXML.querySelector('.title-english');
+
+            let englishTitleHTML;
+            if (englishTitle) {
+                englishTitleHTML = englishTitle.outerHTML;
+            } else {
+                englishTitleHTML = '';
+            }
+
+            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + englishTitleHTML + styleIdEnd);
+        }
+    }
+
+    // Send the request
+    xhr.open('GET', url);
+    xhr.send();
 }
 
 // Get anime/manga IDs and English titles from page, and send to be cached. Repeat storage so as to not store blank still-loading results
