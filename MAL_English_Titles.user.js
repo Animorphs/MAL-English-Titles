@@ -474,7 +474,10 @@ function addTranslation(type, count, url, id, selector)
     {
         if (checkManga(id))
         {
-            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
+            document.querySelectorAll(selector).forEach(function(element)
+            {
+                element.insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
+            });
         }
         else
         {
@@ -485,7 +488,10 @@ function addTranslation(type, count, url, id, selector)
     {
         if (checkAnime(id))
         {
-            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + storedAnime[id][0] + styleIdEnd);
+            document.querySelectorAll(selector).forEach(function(element)
+            {
+                element.insertAdjacentHTML('beforebegin', styleId + storedAnime[id][0] + styleIdEnd);
+            });
         }
         else
         {
@@ -528,7 +534,10 @@ function getEnglishTitle(type, count, url, id, selector)
                 storeManga(id, englishTitle);
             }
 
-            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
+            document.querySelectorAll(selector).forEach(function(element)
+            {
+                element.insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
+            });
         }
     }
 
