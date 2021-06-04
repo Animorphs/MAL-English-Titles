@@ -494,28 +494,37 @@ function addTranslation(type, count, url, id, selector)
     }
 }
 
-function getEnglishTitle(type, count, url, id, selector) {
+function getEnglishTitle(type, count, url, id, selector)
+{
     // Create new request
     let xhr = new XMLHttpRequest();
     xhr.responseType = 'document';
 
     // Set the callback
-    xhr.onload = function() {
-        if (xhr.readyState === xhr.DONE && xhr.status === 200 && xhr.responseXML !== null) {
+    xhr.onload = function()
+    {
+        if (xhr.readyState === xhr.DONE && xhr.status === 200 && xhr.responseXML !== null)
+        {
             let styleId = '<div style="font-weight: bold" id="' + type + count + '">';
             let styleIdEnd = '</div>';
             let englishTitle = xhr.responseXML.querySelector('.title-english');
 
             let englishTitleHTML;
-            if (englishTitle) {
+            if (englishTitle)
+            {
                 englishTitleHTML = englishTitle.outerHTML;
-            } else {
+            }
+            else
+            {
                 englishTitleHTML = '';
             }
 
-            if (type === 'anime') {
+            if (type === 'anime')
+            {
                 storeAnime(id, englishTitleHTML);
-            } else if (type === 'manga') {
+            }
+            else if (type === 'manga')
+            {
                 storeManga(id, englishTitleHTML);
             }
 
