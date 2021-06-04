@@ -507,28 +507,28 @@ function getEnglishTitle(type, count, url, id, selector)
         {
             let styleId = '<div style="font-weight: bold" id="' + type + count + '">';
             let styleIdEnd = '</div>';
-            let englishTitle = xhr.responseXML.querySelector('.title-english');
+            let englishTitleElement = xhr.responseXML.querySelector('.title-english');
 
-            let englishTitleHTML;
-            if (englishTitle)
+            let englishTitle;
+            if (englishTitleElement)
             {
-                englishTitleHTML = englishTitle.outerHTML;
+                englishTitle = englishTitleElement.innerText;
             }
             else
             {
-                englishTitleHTML = '';
+                englishTitle = '';
             }
 
             if (type === 'anime')
             {
-                storeAnime(id, englishTitleHTML);
+                storeAnime(id, englishTitle);
             }
             else if (type === 'manga')
             {
-                storeManga(id, englishTitleHTML);
+                storeManga(id, englishTitle);
             }
 
-            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + englishTitleHTML + styleIdEnd);
+            document.querySelector(selector).insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
         }
     }
 
