@@ -212,7 +212,7 @@ function translate()
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
                 let selector = 'a[href="' + urlDecoded + '"].link-title';
-                addTranslation('anime', i, url, id, selector);
+                addTranslation('anime', i, url, id, selector, true);
             }
         }
     }
@@ -234,7 +234,7 @@ function translate()
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
                     let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('anime', i, url, id, selector);
+                    addTranslation('anime', i, url, id, selector, true);
                 }
             }
         }
@@ -274,7 +274,7 @@ function translate()
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
                     let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('manga', i, url, id, selector);
+                    addTranslation('manga', i, url, id, selector, true);
                 }
             }
         }
@@ -314,7 +314,7 @@ function translate()
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
                     let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('anime', i, url, id, selector);
+                    addTranslation('anime', i, url, id, selector, true);
                 }
             }
         }
@@ -466,7 +466,7 @@ function translate()
     }
 }
 
-function addTranslation(type, count, url, id, selector)
+function addTranslation(type, count, url, id, selector, parent=false)
 {
     let styleId = '<div style="font-weight:bold" id="' + type + count + '">';
     let styleIdEnd = '</div>';
@@ -476,12 +476,16 @@ function addTranslation(type, count, url, id, selector)
         {
             document.querySelectorAll(selector).forEach(function(element)
             {
+                if (parent)
+                {
+                    element = element.parentElement;
+                }
                 element.insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
             });
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector);
+            getEnglishTitle(type, count, url, id, selector, parent);
         }
     }
     else if (type == 'anime')
@@ -490,17 +494,21 @@ function addTranslation(type, count, url, id, selector)
         {
             document.querySelectorAll(selector).forEach(function(element)
             {
+                if (parent)
+                {
+                    element = element.parentElement;
+                }
                 element.insertAdjacentHTML('beforebegin', styleId + storedAnime[id][0] + styleIdEnd);
             });
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector);
+            getEnglishTitle(type, count, url, id, selector, parent);
         }
     }
 }
 
-function getEnglishTitle(type, count, url, id, selector)
+function getEnglishTitle(type, count, url, id, selector, parent)
 {
     // Create new request
     let xhr = new XMLHttpRequest();
@@ -536,6 +544,10 @@ function getEnglishTitle(type, count, url, id, selector)
 
             document.querySelectorAll(selector).forEach(function(element)
             {
+                if (parent)
+                {
+                    element = element.parentElement;
+                }
                 element.insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
             });
         }
