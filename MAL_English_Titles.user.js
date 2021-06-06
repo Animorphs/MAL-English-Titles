@@ -379,7 +379,7 @@ function translate()
     else if (location.href.includes('https://myanimelist.net/history'))
     {
         // Anime Results
-        let resultsAnime = document.querySelectorAll('[href*="/anime.php"]');
+        let resultsAnime = document.querySelectorAll('[href*="/anime.php?id="]');
         let animeIds = [];
         let i = 1;
         for (i; i < resultsAnime.length; i++)
@@ -400,7 +400,7 @@ function translate()
         }
 
         // Manga Results
-        let resultsManga = document.querySelectorAll('[href*="/manga.php"]');
+        let resultsManga = document.querySelectorAll('[href*="/manga.php?id="]');
         let mangaIds = [];
         let j = 1;
         for (j; j < resultsManga.length-1; j++)
