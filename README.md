@@ -32,7 +32,7 @@ Add English titles for various Anime and Manga pages on MyAnimeList.net, whilst 
 <img src='https://i.imgur.com/QBBR33t.png'>
 
 ### Seasonal Anime
-<img src='https://i.imgur.com/VOl4yEe.png'>
+<img src='https://i.imgur.com/gTFfCad.png'>
 
 ### Search
 <img src='https://i.imgur.com/pXIEkdO.png'>
