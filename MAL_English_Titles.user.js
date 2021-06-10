@@ -95,7 +95,7 @@ function translate()
     else if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
     {
         let type = location.href.substring(24, 29);
-        let results = document.getElementsByClassName('data title');
+        let results = document.querySelectorAll('tbody:not([style]) .data.title');
 
         const processResults = function(results)
         {
@@ -110,10 +110,7 @@ function translate()
             }
         };
 
-        processResults(results);
-
-        let listTable = document.querySelector('table');
-        if (listTable)
+        const attachMutationObserver = function(listTable)
         {
             new MutationObserver(function(mutationsList)
             {
@@ -128,6 +125,35 @@ function translate()
                 });
             }).observe(
                 listTable,
+                {childList: true}
+            );
+        };
+
+        let table = document.querySelector('table');
+
+        if (results.length)
+        {
+            processResults(results);
+            attachMutationObserver(table);
+        }
+        else if (table)
+        {
+            new MutationObserver(function(mutationsList)
+            {
+                mutationsList.some(function(mutation)
+                {
+                    return Array.from(mutation.addedNodes).some(function(addedNode)
+                    {
+                        if (addedNode.tagName === 'TABLE')
+                        {
+                            processResults(addedNode.querySelectorAll('.data.title'));
+                            attachMutationObserver(addedNode);
+                            return true;
+                        }
+                    });
+                });
+            }).observe(
+                table.parentElement,
                 {childList: true}
             );
         }
