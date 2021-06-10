@@ -96,9 +96,10 @@ function translate()
     {
         let type = location.href.substring(24, 29);
         let results = document.getElementsByClassName('data title');
-        for (let i = 0; i < results.length; i++)
+
+        const processResults = function(results)
         {
-            if (!document.getElementById(type + i))
+            for (let i = 0; i < results.length; i++)
             {
                 let url = results[i].children[0].href;
                 let urlShort = url.slice(23);
@@ -107,6 +108,28 @@ function translate()
                 let selector = '.data.title > a[href="' + urlShortDecoded + '"]';
                 addTranslation(type, i, url, id, selector);
             }
+        };
+
+        processResults(results);
+
+        let listTable = document.querySelector('table');
+        if (listTable)
+        {
+            new MutationObserver(function(mutationsList)
+            {
+                mutationsList.forEach(function(mutation)
+                {
+                    processResults(
+                        Array.from(
+                            mutation.addedNodes,
+                            (addedNode) => addedNode.children[0].children[3]
+                        )
+                    );
+                });
+            }).observe(
+                listTable,
+                {childList: true}
+            );
         }
     }
 
@@ -592,25 +615,6 @@ if (!storedManga)
 {
     GM_setValue('manga',{});
     storedManga = {};
-}
-
-// Detect AJAX calls upon infinite scroll, and load new translations
-if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
-{
-    (function(open)
-    {
-        XMLHttpRequest.prototype.open = function()
-        {
-            this.addEventListener("readystatechange", function()
-            {
-                if (this.readyState === 4 && this.status === 200 && (this.responseURL.startsWith('https://myanimelist.net/animelist') || this.responseURL.startsWith('https://myanimelist.net/mangalist')))
-                {
-                    translate();
-                }
-            }, false);
-            open.apply(this, arguments);
-        };
-    })(XMLHttpRequest.prototype.open);
 }
 
 // Launch actual script
