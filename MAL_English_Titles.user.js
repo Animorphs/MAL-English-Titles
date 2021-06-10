@@ -91,38 +91,21 @@ function translate()
         }
     }
 
-    // Anime List
-    else if (location.href.includes('https://myanimelist.net/animelist'))
+    // Anime List and Manga List
+    else if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
     {
-        let results = document.getElementsByClassName('data title clearfix');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = results[i].children[0].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('/')[4];
-                let selector = '.data.title.clearfix > a[href="' + urlShortDecoded + '"]';
-                addTranslation('anime', i, url, id, selector);
-            }
-        }
-    }
-
-    // Manga List
-    else if (location.href.includes('https://myanimelist.net/mangalist'))
-    {
+        let type = location.href.substring(24, 29);
         let results = document.getElementsByClassName('data title');
         for (let i = 0; i < results.length; i++)
         {
-            if (!document.getElementById('manga' + i))
+            if (!document.getElementById(type + i))
             {
                 let url = results[i].children[0].href;
                 let urlShort = url.slice(23);
                 let urlShortDecoded = decodeURIComponent(urlShort);
                 let id = url.split('/')[4];
                 let selector = '.data.title > a[href="' + urlShortDecoded + '"]';
-                addTranslation('manga', i, url, id, selector);
+                addTranslation(type, i, url, id, selector);
             }
         }
     }
