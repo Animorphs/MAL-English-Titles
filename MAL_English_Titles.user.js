@@ -112,7 +112,7 @@ function translate()
 
         function attachMutationObserver(listTable)
         {
-            new MutationObserver(function(mutationsList)
+            new MutationObserver(function(mutationsList, observer)
             {
                 mutationsList.forEach(function(mutation)
                 {
@@ -123,6 +123,11 @@ function translate()
                         )
                     );
                 });
+
+                if ((listTable.children.length - 1) % 150 !== 0)
+                {
+                    observer.disconnect();
+                }
             }).observe(
                 listTable,
                 {childList: true}
@@ -134,11 +139,14 @@ function translate()
         if (results.length)
         {
             processResults(results);
-            attachMutationObserver(table);
+            if (results.length === 150)
+            {
+                attachMutationObserver(table);
+            }
         }
         else if (table)
         {
-            new MutationObserver(function(mutationsList)
+            new MutationObserver(function(mutationsList, observer)
             {
                 mutationsList.some(function(mutation)
                 {
@@ -146,8 +154,13 @@ function translate()
                     {
                         if (addedNode.tagName === 'TABLE')
                         {
-                            processResults(addedNode.querySelectorAll('.data.title'));
-                            attachMutationObserver(addedNode);
+                            let results = addedNode.querySelectorAll('.data.title');
+                            processResults(results);
+                            if (results.length === 150)
+                            {
+                                attachMutationObserver(addedNode);
+                            }
+                            observer.disconnect();
                             return true;
                         }
                     });
