@@ -97,7 +97,7 @@ function translate()
         let type = location.href.substring(24, 29);
         let results = document.querySelectorAll('tbody:not([style]) .data.title');
 
-        const processResults = function(tempResults)
+        function processResults(tempResults)
         {
             for (let i = 0; i < tempResults.length; i++)
             {
@@ -108,9 +108,9 @@ function translate()
                 let selector = '.data.title > a[href="' + urlShortDecoded + '"]';
                 addTranslation(type, i, url, id, selector);
             }
-        };
+        }
 
-        const attachMutationObserver = function(listTable)
+        function attachMutationObserver(listTable)
         {
             new MutationObserver(function(mutationsList)
             {
@@ -127,7 +127,7 @@ function translate()
                 listTable,
                 {childList: true}
             );
-        };
+        }
 
         let table = document.querySelector('table');
 
