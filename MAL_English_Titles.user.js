@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0
+// @version      2.0.1
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -91,39 +91,84 @@ function translate()
         }
     }
 
-    // Anime List
-    else if (location.href.includes('https://myanimelist.net/animelist'))
+    // Anime List and Manga List
+    else if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
     {
-        let results = document.getElementsByClassName('data title clearfix');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = results[i].children[0].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('/')[4];
-                let selector = '.data.title.clearfix > a[href="' + urlShortDecoded + '"]';
-                addTranslation('anime', i, url, id, selector);
-            }
-        }
-    }
+        let type = location.href.substring(24, 29);
+        let results = document.querySelectorAll('tbody:not([style]) .data.title');
 
-    // Manga List
-    else if (location.href.includes('https://myanimelist.net/mangalist'))
-    {
-        let results = document.getElementsByClassName('data title');
-        for (let i = 0; i < results.length; i++)
+        function processResults(tempResults)
         {
-            if (!document.getElementById('manga' + i))
+            for (let i = 0; i < tempResults.length; i++)
             {
-                let url = results[i].children[0].href;
+                let url = tempResults[i].children[0].href;
                 let urlShort = url.slice(23);
                 let urlShortDecoded = decodeURIComponent(urlShort);
                 let id = url.split('/')[4];
                 let selector = '.data.title > a[href="' + urlShortDecoded + '"]';
-                addTranslation('manga', i, url, id, selector);
+                addTranslation(type, i, url, id, selector);
             }
+        }
+
+        function attachMutationObserver(listTable)
+        {
+            new MutationObserver(function(mutationsList, observer)
+            {
+                mutationsList.forEach(function(mutation)
+                {
+                    processResults(
+                        Array.from(
+                            mutation.addedNodes,
+                            (addedNode) => addedNode.children[0].children[3]
+                        )
+                    );
+                });
+
+                if ((listTable.children.length - 1) % 150 !== 0)
+                {
+                    observer.disconnect();
+                }
+            }).observe(
+                listTable,
+                {childList: true}
+            );
+        }
+
+        let table = document.querySelector('table');
+
+        if (results.length)
+        {
+            processResults(results);
+            if (results.length === 150)
+            {
+                attachMutationObserver(table);
+            }
+        }
+        else if (table)
+        {
+            new MutationObserver(function(mutationsList, observer)
+            {
+                mutationsList.some(function(mutation)
+                {
+                    return Array.from(mutation.addedNodes).some(function(addedNode)
+                    {
+                        if (addedNode.tagName === 'TABLE')
+                        {
+                            let results = addedNode.querySelectorAll('.data.title');
+                            processResults(results);
+                            if (results.length === 150)
+                            {
+                                attachMutationObserver(addedNode);
+                            }
+                            observer.disconnect();
+                            return true;
+                        }
+                    });
+                });
+            }).observe(
+                table.parentElement,
+                {childList: true}
+            );
         }
     }
 
@@ -609,25 +654,6 @@ if (!storedManga)
 {
     GM_setValue('manga',{});
     storedManga = {};
-}
-
-// Detect AJAX calls upon infinite scroll, and load new translations
-if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
-{
-    (function(open)
-    {
-        XMLHttpRequest.prototype.open = function()
-        {
-            this.addEventListener("readystatechange", function()
-            {
-                if (this.readyState === 4 && this.status === 200 && (this.responseURL.startsWith('https://myanimelist.net/animelist') || this.responseURL.startsWith('https://myanimelist.net/mangalist')))
-                {
-                    translate();
-                }
-            }, false);
-            open.apply(this, arguments);
-        };
-    })(XMLHttpRequest.prototype.open);
 }
 
 // Launch actual script
