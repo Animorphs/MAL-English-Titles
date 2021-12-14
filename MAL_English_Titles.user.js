@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.1
+// @version      2.0.2
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -253,6 +253,18 @@ function translate()
                 addTranslation('anime', i, url, id, selector, true);
             }
         }
+        for (let i = 0; i < results.length; i++)
+        {
+            setTimeout(function()
+            {
+                if (document.getElementById('anime' + i).innerText.length > 30)
+                {
+                    document.getElementById('anime' + i).parentElement.parentElement.style.height = "60px";
+                    document.getElementById('anime' + i).parentElement.parentElement.style.verticalAlign = "top";
+                }
+
+            }, (4000));
+        }
     }
 
     // Anime Genres
@@ -272,6 +284,17 @@ function translate()
                     let selector = 'a[href="' + urlDecoded + '"].link-title';
                     addTranslation('anime', i, url, id, selector, true);
                 }
+            }
+            for (let i = 0; i < results.length; i++)
+            {
+                setTimeout(function()
+                {
+                    if (document.getElementById('anime' + i).innerText.length > 30)
+                    {
+                        document.getElementById('anime' + i).parentElement.parentElement.style.height = "60px";
+                        document.getElementById('anime' + i).parentElement.parentElement.style.verticalAlign = "top";
+                    }
+                }, (4000));
             }
         }
 
@@ -308,8 +331,19 @@ function translate()
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
                     let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('manga', i, url, id, selector, true);
+                    addTranslation('manga', i, url, id, selector, true, true);
                 }
+            }
+            for (let i = 0; i < results.length; i++)
+            {
+                setTimeout(function()
+                {
+                    if (document.getElementById('manga' + i).innerText.length > 30)
+                    {
+                        document.getElementById('manga' + i).parentElement.parentElement.style.height = "60px";
+                        document.getElementById('manga' + i).parentElement.parentElement.style.verticalAlign = "top";
+                    }
+                }, (4000));
             }
         }
 
@@ -493,7 +527,7 @@ function translate()
 }
 
 // Get English title (storedAnime and getEnglishTitle) and add to page
-function addTranslation(type, count, url, id, selector, parent=false)
+function addTranslation(type, count, url, id, selector, parent=false, afterbegin=false)
 {
     let styleId = '<div style="font-weight:bold" id="' + type + count + '">';
     let styleIdEnd = '</div>';
@@ -512,7 +546,7 @@ function addTranslation(type, count, url, id, selector, parent=false)
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector, parent);
+            getEnglishTitle(type, count, url, id, selector, parent, afterbegin);
         }
     }
     else if (type === 'manga')
@@ -525,18 +559,25 @@ function addTranslation(type, count, url, id, selector, parent=false)
                 {
                     element = element.parentElement;
                 }
-                element.insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
+                if (afterbegin)
+                {
+                    element.insertAdjacentHTML('afterbegin', styleId + storedManga[id][0] + styleIdEnd);
+                }
+                else
+                {
+                    element.insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
+                }
             });
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector, parent);
+            getEnglishTitle(type, count, url, id, selector, parent, afterbegin);
         }
     }
 }
 
 // Request English title from MAL and send to be stored (storeAnime)
-function getEnglishTitle(type, count, url, id, selector, parent)
+function getEnglishTitle(type, count, url, id, selector, parent, afterbegin)
 {
     // Create new request
     let xhr = new XMLHttpRequest();
@@ -576,7 +617,14 @@ function getEnglishTitle(type, count, url, id, selector, parent)
                 {
                     element = element.parentElement;
                 }
-                element.insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
+                if (afterbegin)
+                {
+                    element.insertAdjacentHTML('afterbegin', styleId + englishTitle + styleIdEnd);
+                }
+                else
+                {
+                    element.insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
+                }
             });
         }
     };
