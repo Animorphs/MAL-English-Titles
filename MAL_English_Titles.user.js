@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.2
+// @version      2.0.3
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -185,7 +185,7 @@ function translate()
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
                 let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b.fl-l';
-                addTranslation('anime', i, url, id, selector);
+                addTranslation('anime', i, url, id, selector, true);
             }
         }
 
