@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.4
+// @version      2.0.5
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -258,8 +258,8 @@ function translate()
     // Anime Genres
     else if (location.href.includes('https://myanimelist.net/anime/genre'))
     {
-        // Tile View
-        if (document.getElementsByClassName('btn-view-style js-btn-view-style tile on')[0])
+        // Seasonal View
+        if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (let i = 0; i < results.length; i++)
@@ -276,7 +276,7 @@ function translate()
         }
 
         // List View
-        else if (document.getElementsByClassName('btn-view-style js-btn-view-style list on')[0])
+        else if (document.getElementsByClassName('js-btn-view-style list on')[0])
         {
             let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
             for (let i = 0; i < results.length; i++)
@@ -296,8 +296,8 @@ function translate()
     // Manga Genres
     else if (location.href.includes('https://myanimelist.net/manga/genre'))
     {
-        // Tile View
-        if (document.getElementsByClassName('btn-view-style js-btn-view-style tile on')[0])
+        // Seasonal View
+        if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (let i = 0; i < results.length; i++)
@@ -314,7 +314,7 @@ function translate()
         }
 
         // List View
-        else if (document.getElementsByClassName('btn-view-style js-btn-view-style list on')[0])
+        else if (document.getElementsByClassName('js-btn-view-style list on')[0])
         {
             let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
             for (let i = 0; i < results.length; i++)
@@ -335,7 +335,24 @@ function translate()
     else if (location.href.includes('https://myanimelist.net/anime/producer'))
     {
         // Tile View
-        if (document.getElementsByClassName('btn-view-style js-btn-view-style tile on')[0])
+        if (document.getElementsByClassName('js-btn-view-style2 tile on')[0])
+        {
+            let reuslts = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all js-anime-type-1');
+            for (let i = 0; i < reuslts.length; i++)
+            {
+                if (!document.getElementById('anime' + i))
+                {
+                    let url = reuslts[i].children[0].children[0].href
+                    let urlDecoded = decodeURIComponent(url);
+                    let id = url.split('/')[4];
+                    let selector = '.seasonal-anime.js-seasonal-anime.js-anime-type-all.js-anime-type-1 > .title > a[href="' + urlDecoded + '"]';
+                    addTranslation('anime', i, url, id, selector, false, false, true);
+                }
+            }
+        }
+        //
+        // Seasonal View
+        if (document.getElementsByClassName('js-btn-view-style2 seasonal on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (let i = 0; i < results.length; i++)
@@ -352,17 +369,17 @@ function translate()
         }
 
         // List View
-        else if (document.getElementsByClassName('btn-view-style js-btn-view-style list on')[0])
+        else if (document.getElementsByClassName('js-btn-view-style2 list on')[0])
         {
-            let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
+            let results = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all js-anime-type-1');
             for (let i = 0; i < results.length; i++)
             {
                 if (!document.getElementById('anime' + i))
                 {
-                    let url = results[i].href;
+                    let url = results[i].children[0].children[0].children[0].href;
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
-                    let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b';
+                    let selector = '.spaceit_pad > a[href="' + urlDecoded + '"]';
                     addTranslation('anime', i, url, id, selector);
                 }
             }
@@ -493,7 +510,7 @@ function translate()
 }
 
 // Get English title (storedAnime and getEnglishTitle) and add to page
-function addTranslation(type, count, url, id, selector, parent=false, tile=false)
+function addTranslation(type, count, url, id, selector, parent=false, tile=false, producer=false)
 {
     let styleId = ""
     let styleIdEnd = ""
@@ -509,6 +526,10 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
     }
     if (type === 'anime')
     {
+        if (producer)
+        {
+            document.getElementsByClassName('category')[count].style.visibility = 'hidden'
+        }
         if (checkAnime(id))
         {
             document.querySelectorAll(selector).forEach(function(element)
@@ -522,7 +543,7 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector, parent, tile, styleId, styleIdEnd);
+            getEnglishTitle(type, count, url, id, selector, parent, styleId, styleIdEnd);
         }
     }
     else if (type === 'manga')
@@ -540,13 +561,13 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector, parent, tile, styleId, styleIdEnd);
+            getEnglishTitle(type, count, url, id, selector, parent, styleId, styleIdEnd);
         }
     }
 }
 
 // Request English title from MAL and send to be stored (storeAnime)
-function getEnglishTitle(type, count, url, id, selector, parent, tile, styleId, styleIdEnd)
+function getEnglishTitle(type, count, url, id, selector, parent, styleId, styleIdEnd)
 {
     // Create new request
     let xhr = new XMLHttpRequest();
