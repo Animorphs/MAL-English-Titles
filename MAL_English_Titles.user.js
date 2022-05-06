@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.5
+// @version      2.0.6
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -337,15 +337,15 @@ function translate()
         // Tile View
         if (document.getElementsByClassName('js-btn-view-style2 tile on')[0])
         {
-            let reuslts = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all js-anime-type-1');
-            for (let i = 0; i < reuslts.length; i++)
+            let results = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all ');
+            for (let i = 0; i < results.length; i++)
             {
                 if (!document.getElementById('anime' + i))
                 {
-                    let url = reuslts[i].children[0].children[0].href
+                    let url = results[i].children[0].children[0].href
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
-                    let selector = '.seasonal-anime.js-seasonal-anime.js-anime-type-all.js-anime-type-1 > .title > a[href="' + urlDecoded + '"]';
+                    let selector = '.seasonal-anime.js-seasonal-anime.js-anime-type-all > .title > a[href="' + urlDecoded + '"]';
                     addTranslation('anime', i, url, id, selector, false, false, true);
                 }
             }
@@ -371,7 +371,7 @@ function translate()
         // List View
         else if (document.getElementsByClassName('js-btn-view-style2 list on')[0])
         {
-            let results = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all js-anime-type-1');
+            let results = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all');
             for (let i = 0; i < results.length; i++)
             {
                 if (!document.getElementById('anime' + i))
@@ -530,7 +530,7 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         {
             document.getElementsByClassName('category')[count].style.visibility = 'hidden'
         }
-        if (checkAnime(id))
+         if (checkAnime(id))
         {
             document.querySelectorAll(selector).forEach(function(element)
             {
@@ -543,7 +543,7 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector, parent, styleId, styleIdEnd);
+            getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd);
         }
     }
     else if (type === 'manga')
@@ -561,13 +561,13 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         }
         else
         {
-            getEnglishTitle(type, count, url, id, selector, parent, styleId, styleIdEnd);
+            getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd);
         }
     }
 }
 
 // Request English title from MAL and send to be stored (storeAnime)
-function getEnglishTitle(type, count, url, id, selector, parent, styleId, styleIdEnd)
+function getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd)
 {
     // Create new request
     let xhr = new XMLHttpRequest();
