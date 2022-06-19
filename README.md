@@ -4,9 +4,13 @@ Add English titles for various Anime and Manga pages on MyAnimeList.net, whilst 
 <b>Note:</b> If you are getting timed out of MAL after installation, please see the [FAQ](#faq).
 
 ## 📝 Table of Contents
+  * [Note](#note)
   * [How to Install](#install)
   * [FAQ](#faq)
   * [Examples / Screenshots](#screenshots)
+
+## ❗ Note <a name = "note"></a>
+MAL has recently implemented the ability to view English titles, but did a half-hearted job with it. <b>This MAL setting is not (nicely) compatible with my script.</b> If you would like to enable it, you can do so by setting the "Anime Titles" and "Manga Titles" to "English" under the [Default Settings here](https://myanimelist.net/editprofile.php?go=listpreferences). This appears to change personal anime and manga lists to just English, and appends the English title underneath the Japanese title in some views (such as the Seasonal view), but does nothing to most pages, leaving them still in Japanese. On the personal anime and manga lists, it also does not retain the Japanese title. If you have this enabled, <b>it will not work well with my script</b>, so I recommend leaving them set to "Main Title". The script will continue adding English titles regardless of your settings, so you will just see the English title twice if you have the MAL settings set to English.
 
 ## 💻 How to Install <a name = "install"></a>
 1. Download and install [Tampermonkey](https://www.tampermonkey.net/). Note: this script may not work properly with Greasemonkey or Violentmonkey.
