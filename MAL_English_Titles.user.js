@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.6
+// @version      2.0.7
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -14,51 +14,32 @@
 // Get Japanese titles from page, and send to be translated (addTranslation)
 function translate()
 {
+    const LOCATION_HREF = location.href;
+    const URL_REGEX = /https:\/\/myanimelist\.net\/(anime|manga)\/([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/;
+    const URL_PHP_REGEX = /https:\/\/myanimelist\.net\/(anime|manga)\.php\?id\=([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/;
+
     // Anime/Manga Page (store only, don't display)
-    if (location.href.match(/https:\/\/myanimelist\.net\/(anime|manga)\/([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/) || location.href.match(/https:\/\/myanimelist\.net\/(anime|manga)\.php\?id\=([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/))
+    if (URL_REGEX.test(LOCATION_HREF) || URL_PHP_REGEX.test(LOCATION_HREF))
     {
-        let titleHtml = document.getElementsByClassName('title-english')[0];
-        let id = 0;
-        if (location.href.includes('.php'))
+        const TITLE_HTML = document.getElementsByClassName('title-english')[0];
+        const ID = LOCATION_HREF.includes('.php') ? LOCATION_HREF.split('id=')[1] : LOCATION_HREF.split('/')[4];
+
+        const MEDIA_TYPE = LOCATION_HREF.includes('/anime') ? "anime" : "manga";
+        if (TITLE_HTML)
         {
-            id = location.href.split('id=')[1];
+            const TITLE = TITLE_HTML.innerText;
+            console.log('Updated ${MEDIA_TYPE} ${ID}: ${TITLE}');
+            MEDIA_TYPE == 'anime' ? storeAnime(ID, TITLE) : storeManga(ID, TITLE);
         }
-        else
+        else if (storedAnime[ID][0] === '' || !storedAnime.hasOwnProperty(ID))
         {
-            id = location.href.split('/')[4];
-        }
-        if (location.href.includes('/anime'))
-        {
-            if (titleHtml)
-            {
-                let title = titleHtml.innerText;
-                console.log('Updated anime ' + id + ': ' + title);
-                storeAnime(id, title);
-            }
-            else if (storedAnime[id][0] === '' || !storedAnime.hasOwnProperty(id))
-            {
-                console.log('Updated anime ' + id);
-                storeAnime(id, '');
-            }
-        }
-        else if (location.href.includes('/manga'))
-        {
-            if (titleHtml)
-            {
-                let title = titleHtml.innerText;
-                console.log('Updated manga ' + id + ': ' + title);
-                storeManga(id, title);
-            }
-            else if (storedManga[id][0] === '' || !storedManga.hasOwnProperty(id))
-            {
-                console.log('Updated manga ' + id);
-                storeManga(id, '');
-            }
+            console.log('Updated ${MEDIA_TYPE} ${ID}');
+            MEDIA_TYPE == 'anime' ? storeAnime(ID, '') : storeManga(ID, '');
         }
     }
 
     // Anime Top
-    else if (location.href.includes('https://myanimelist.net/topanime.php'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/topanime.php'))
     {
         let results = document.getElementsByClassName('hoverinfo_trigger fl-l fs14 fw-b anime_ranking_h3');
         for (let i = 0; i < results.length; i++)
@@ -75,7 +56,7 @@ function translate()
     }
 
     // Manga Top
-    else if (location.href.includes('https://myanimelist.net/topmanga.php'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/topmanga.php'))
     {
         let results = document.getElementsByClassName('hoverinfo_trigger fs14 fw-b');
         for (let i = 0; i < results.length; i++)
@@ -92,9 +73,9 @@ function translate()
     }
 
     // Anime List and Manga List
-    else if (location.href.includes('https://myanimelist.net/animelist') || location.href.includes('https://myanimelist.net/mangalist'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/animelist') || LOCATION_HREF.includes('https://myanimelist.net/mangalist'))
     {
-        let type = location.href.substring(24, 29);
+        let type = LOCATION_HREF.substring(24, 29);
         let results = document.querySelectorAll('tbody:not([style]) .data.title');
 
         function processResults(tempResults)
@@ -173,7 +154,7 @@ function translate()
     }
 
     // Search
-    else if (location.href.includes('https://myanimelist.net/search/'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/search/'))
     {
         // Anime Results
         let resultsAnime = document.querySelectorAll('[class="hoverinfo_trigger fw-b fl-l"][href*="/anime/"]');
@@ -205,7 +186,7 @@ function translate()
     }
 
     // Anime Search
-    else if (location.href.includes('https://myanimelist.net/anime.php?q') || location.href.includes('https://myanimelist.net/anime.php?cat'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/anime.php?q') || LOCATION_HREF.includes('https://myanimelist.net/anime.php?cat'))
     {
         let results = document.getElementsByClassName('hoverinfo_trigger fw-b fl-l');
         for (let i = 0; i < results.length; i++)
@@ -222,7 +203,7 @@ function translate()
     }
 
     // Manga Search
-    else if (location.href.includes('https://myanimelist.net/manga.php?q') || location.href.includes('https://myanimelist.net/manga.php?cat'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/manga.php?q') || LOCATION_HREF.includes('https://myanimelist.net/manga.php?cat'))
     {
         let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
         for (let i = 0; i < results.length; i++)
@@ -239,7 +220,7 @@ function translate()
     }
 
     // Anime Seasonal
-    else if (location.href.includes('https://myanimelist.net/anime/season'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/anime/season'))
     {
         let results = document.getElementsByClassName('link-title');
         for (let i = 0; i < results.length; i++)
@@ -256,7 +237,7 @@ function translate()
     }
 
     // Anime Genres
-    else if (location.href.includes('https://myanimelist.net/anime/genre'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/anime/genre'))
     {
         // Seasonal View
         if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
@@ -294,7 +275,7 @@ function translate()
     }
 
     // Manga Genres
-    else if (location.href.includes('https://myanimelist.net/manga/genre'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/manga/genre'))
     {
         // Seasonal View
         if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
@@ -332,7 +313,7 @@ function translate()
     }
 
     // Anime Producers
-    else if (location.href.includes('https://myanimelist.net/anime/producer'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/anime/producer'))
     {
         // Tile View
         if (document.getElementsByClassName('js-btn-view-style2 tile on')[0])
@@ -387,7 +368,7 @@ function translate()
     }
 
     // Anime Shared
-    else if (location.href.includes('https://myanimelist.net/shared.php') && !location.href.includes('&type=manga'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/shared.php') && !LOCATION_HREF.includes('&type=manga'))
     {
         let results = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit):not([href*="anime/season"])');
         for (let i = 0; i < results.length; i++)
@@ -405,7 +386,7 @@ function translate()
     }
 
     // Manga Shared
-    else if (location.href.includes('https://myanimelist.net/shared.php') && location.href.includes('&type=manga'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/shared.php') && LOCATION_HREF.includes('&type=manga'))
     {
         let results = document.querySelectorAll('[href*="/manga/"]:not(.Lightbox_AddEdit)');
         for (let i = 0; i < results.length; i++)
@@ -423,7 +404,7 @@ function translate()
     }
 
     // History
-    else if (location.href.includes('https://myanimelist.net/history'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/history'))
     {
         // Anime Results
         let resultsAnime = document.querySelectorAll('[href*="/anime.php?id="]');
@@ -467,7 +448,7 @@ function translate()
     }
 
     // People
-    else if (location.href.includes('https://myanimelist.net/people'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/people'))
     {
         // Anime Results
         let resultsAnime = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit):not([href*="anime/season"])');
@@ -516,7 +497,7 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
     let styleIdEnd = ""
     if (tile)
     {
-        styleId = '<h3 class="h3_anime_subtitle" id="' + type + count + '" style="font-size:14px; color:black">';
+        styleId = '<h3 class="h3_anime_subtitle" id="' + type + count + '">';
         styleIdEnd = '</h3>';
     }
     else
