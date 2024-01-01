@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.7
+// @version      2.0.8
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @namespace    https://github.com/Animorphs/MAL-English-Titles
-// @include      https://myanimelist.net/*
+// @match        https://myanimelist.net/*
 // @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
 // @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
 // ==/UserScript==
+
+
 
 // Get Japanese titles from page, and send to be translated (addTranslation)
 function translate()
@@ -41,7 +43,7 @@ function translate()
     // Anime Top
     else if (LOCATION_HREF.includes('https://myanimelist.net/topanime.php'))
     {
-        let results = document.getElementsByClassName('hoverinfo_trigger fl-l fs14 fw-b anime_ranking_h3');
+        let results = document.getElementsByClassName('fl-l fs14 fw-b anime_ranking_h3');
         for (let i = 0; i < results.length; i++)
         {
             if (!document.getElementById('anime' + i))
@@ -49,7 +51,7 @@ function translate()
                 let url = results[i].children[0].href;
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
-                let selector = '.hoverinfo_trigger.fl-l.fs14.fw-b.anime_ranking_h3 > a[href="' + urlDecoded + '"]';
+                let selector = '.fl-l.fs14.fw-b.anime_ranking_h3 > a[href="' + urlDecoded + '"]';
                 addTranslation('anime', i, url, id, selector);
             }
         }
