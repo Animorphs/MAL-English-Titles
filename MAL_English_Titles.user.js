@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.0.8
+// @version      2.1.0
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -23,20 +23,64 @@ function translate()
     // Anime/Manga Page (store only, don't display)
     if (URL_REGEX.test(LOCATION_HREF) || URL_PHP_REGEX.test(LOCATION_HREF))
     {
-        const TITLE_HTML = document.getElementsByClassName('title-english')[0];
-        const ID = LOCATION_HREF.includes('.php') ? LOCATION_HREF.split('id=')[1] : LOCATION_HREF.split('/')[4];
+        let titleHtml = document.getElementsByClassName('title-english')[0];
+        let id = LOCATION_HREF.includes('.php') ? LOCATION_HREF.split('id=')[1] : LOCATION_HREF.split('/')[4];
 
-        const MEDIA_TYPE = LOCATION_HREF.includes('/anime') ? "anime" : "manga";
-        if (TITLE_HTML)
+        let type = LOCATION_HREF.includes('/anime') ? "anime" : "manga";
+        if (titleHtml)
         {
-            const TITLE = TITLE_HTML.innerText;
-            console.log('Updated ${MEDIA_TYPE} ${ID}: ${TITLE}');
-            MEDIA_TYPE == 'anime' ? storeAnime(ID, TITLE) : storeManga(ID, TITLE);
+            let title = titleHtml.innerText;
+            console.log(`Updated ${type} ${id}: ${title}`);
+            type == 'anime' ? storeAnime(id, title) : storeManga(id, title);
         }
-        else if (storedAnime[ID][0] === '' || !storedAnime.hasOwnProperty(ID))
+        else if (storedAnime[id][0] === '' || !storedAnime.hasOwnProperty(id))
         {
-            console.log('Updated ${MEDIA_TYPE} ${ID}');
-            MEDIA_TYPE == 'anime' ? storeAnime(ID, '') : storeManga(ID, '');
+            console.log(`Updated ${type} ${id}`);
+            type == 'anime' ? storeAnime(id, '') : storeManga(id, '');
+        }
+    }
+
+    // // Anime/Manga Page User Recommendations
+    if ((URL_REGEX.test(LOCATION_HREF) || URL_PHP_REGEX.test(LOCATION_HREF)) && LOCATION_HREF.includes('/userrecs'))
+    {
+        let results = document.querySelectorAll('[style*="margin-bottom: 2px"]');
+        let type = LOCATION_HREF.includes('/anime') ? 'anime' : 'manga';
+        for (let i = 0; i < results.length; i++)
+        {
+            if (!document.getElementById(type + i))
+            {
+                let url = results[i].children[0].href;
+                let urlDecoded = decodeURIComponent(url);
+                let id = url.split('/')[4];
+                //console.log(id)
+                let selector = 'div[style="margin-bottom: 2px;"] > a[href="' + urlDecoded + '"]';
+                addTranslation(type, i, url, id, selector);
+            }
+        }
+    }
+
+    // Recommendations
+    else if (LOCATION_HREF.includes('https://myanimelist.net/recommendations.php'))
+    {
+        let results = document.querySelectorAll('.spaceit.borderClass a:has(strong)');
+        let arr = []
+        let type = LOCATION_HREF.includes('&t=anime') ? 'anime' : 'manga';
+        for (let i = 0; i < results.length; i++)
+        {
+            if (!document.getElementById(type + i))
+            {
+                let url = results[i].href;
+                let urlDecoded = decodeURIComponent(url);
+                let parts = urlDecoded.split('/' + type);
+                let urlShort = '/' + type + parts[1];
+                if (!arr.includes(urlShort))
+                {
+                    arr.push(urlShort)
+                    let id = url.split('/')[4];
+                    let selector = 'td > a[href*="' + urlShort + '"]:not(:has(+ div[style="font-weight:bold"]))';
+                    addTranslation(type, i, url, id, selector);
+                }
+            }
         }
     }
 
