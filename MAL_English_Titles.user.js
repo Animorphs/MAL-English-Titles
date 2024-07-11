@@ -543,7 +543,7 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
     let styleIdEnd = ""
     if (tile)
     {
-        styleId = '<h3 class="h3_anime_subtitle" id="' + type + count + '">';
+        styleId = '<h3 class="h3_anime_subtitle" id="' + type + count + '" style="font-weight: bold !important; color: black !important;">';
         styleIdEnd = '</h3>';
     }
     else
