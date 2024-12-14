@@ -321,7 +321,7 @@ function translate()
     }
 
     // Manga Genres
-    else if (LOCATION_HREF.includes('https://myanimelist.net/manga/genre'))
+    else if (LOCATION_HREF.includes('https://myanimelist.net/manga/genre') || LOCATION_HREF.includes('https://myanimelist.net/manga/adapted'))
     {
         // Seasonal View
         if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
