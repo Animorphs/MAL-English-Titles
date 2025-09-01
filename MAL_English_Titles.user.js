@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.2.1
+// @version      2.2.2
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM.setValue
@@ -40,7 +40,7 @@ async function translate()
         }
     }
 
-    // // Anime/Manga Page User Recommendations
+    // Anime/Manga Page User Recommendations
     if ((URL_REGEX.test(LOCATION_HREF) || URL_PHP_REGEX.test(LOCATION_HREF)) && LOCATION_HREF.includes('/userrecs'))
     {
         let results = document.querySelectorAll('[style*="margin-bottom: 2px"]');
@@ -536,6 +536,7 @@ async function translate()
     }
 }
 
+// English title element to be added to page
 function createTranslationElement(styleId, englishTitle, styleIdEnd) {
     const container = document.createElement('div');
     container.innerHTML = styleId + englishTitle + styleIdEnd;
@@ -566,13 +567,35 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         }
          if (checkAnime(id))
         {
+            const englishTitle = storedAnime[id][0];
+
             document.querySelectorAll(selector).forEach(function(element)
             {
                 if (parent)
                 {
                     element = element.parentElement;
                 }
-                const translation = createTranslationElement(styleId, storedAnime[id][0], styleIdEnd);
+
+                // Check for tiles: don't add if h3 with same text already exists
+                if (tile) {
+                    const titleTextContainer = element.closest('.title-text');
+                    if (titleTextContainer) {
+                        const existingH3 = titleTextContainer.querySelector('h3.h3_anime_subtitle');
+                        if (existingH3 && existingH3.textContent.trim() === englishTitle) {
+                            return;
+                        }
+                    }
+                }
+
+                // Check for non-tiles: don't add if Japanese and English titles are the same
+                if (!tile) {
+                    const japaneseTitle = element.textContent.trim();
+                    if (japaneseTitle === englishTitle) {
+                        return;
+                    }
+                }
+
+                const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
                 element.parentNode.insertBefore(translation, element);
             });
         }
@@ -585,13 +608,35 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
     {
         if (checkManga(id))
         {
+            const englishTitle = storedManga[id][0];
+
             document.querySelectorAll(selector).forEach(function(element)
             {
                 if (parent)
                 {
                     element = element.parentElement;
                 }
-                const translation = createTranslationElement(styleId, storedManga[id][0], styleIdEnd);
+
+                // Check for tiles: don't add if h3 with same text already exists
+                if (tile) {
+                    const titleTextContainer = element.closest('.title-text');
+                    if (titleTextContainer) {
+                        const existingH3 = titleTextContainer.querySelector('h3.h3_anime_subtitle');
+                        if (existingH3 && existingH3.textContent.trim() === englishTitle) {
+                            return;
+                        }
+                    }
+                }
+
+                // Check for non-tiles: don't add if Japanese and English titles are the same
+                if (!tile) {
+                    const japaneseTitle = element.textContent.trim();
+                    if (japaneseTitle === englishTitle) {
+                        return;
+                    }
+                }
+
+                const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
                 element.parentNode.insertBefore(translation, element);
             });
         }
