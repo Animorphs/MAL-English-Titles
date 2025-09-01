@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.2.0
+// @version      2.2.1
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM_setValue
@@ -536,6 +536,13 @@ function translate()
     }
 }
 
+function createTranslationElement(styleId, englishTitle, styleIdEnd) {
+    const container = document.createElement('div');
+    container.innerHTML = styleId + englishTitle + styleIdEnd;
+    container.firstElementChild.title = englishTitle;
+    return container.firstElementChild;
+}
+
 // Get English title (storedAnime and getEnglishTitle) and add to page
 function addTranslation(type, count, url, id, selector, parent=false, tile=false, producer=false)
 {
@@ -565,7 +572,8 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
                 {
                     element = element.parentElement;
                 }
-                element.insertAdjacentHTML('beforebegin', styleId + storedAnime[id][0] + styleIdEnd);
+                const translation = createTranslationElement(styleId, storedAnime[id][0], styleIdEnd);
+                element.parentNode.insertBefore(translation, element);
             });
         }
         else
@@ -583,7 +591,8 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
                 {
                     element = element.parentElement;
                 }
-                element.insertAdjacentHTML('beforebegin', styleId + storedManga[id][0] + styleIdEnd);
+                const translation = createTranslationElement(styleId, storedManga[id][0], styleIdEnd);
+                element.parentNode.insertBefore(translation, element);
             });
         }
         else
@@ -632,7 +641,8 @@ function getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd)
                 {
                     element = element.parentElement;
                 }
-                element.insertAdjacentHTML('beforebegin', styleId + englishTitle + styleIdEnd);
+                const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
+                element.parentNode.insertBefore(translation, element);
             });
         }
     };
