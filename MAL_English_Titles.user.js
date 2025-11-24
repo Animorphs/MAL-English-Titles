@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.2.2
+// @version      2.2.3
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM.setValue
 // @grant        GM.getValue
 // @namespace    https://github.com/Animorphs/MAL-English-Titles
+// @icon         https://myanimelist.net/favicon.ico
 // @match        https://myanimelist.net/*
 // @updateURL    https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
 // @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
@@ -278,6 +279,27 @@ async function translate()
                 let id = url.split('/')[4];
                 let selector = 'a[href="' + urlDecoded + '"].link-title';
                 addTranslation('anime', i, url, id, selector, false, true);
+            }
+        }
+    }
+
+    // Reviews
+    else if (LOCATION_HREF.includes('https://myanimelist.net/reviews.php'))
+    {
+        let type = LOCATION_HREF.includes('t=manga') ? 'manga' : 'anime';
+        let results = document.querySelectorAll('.review-element .titleblock a.title');
+        let processedIds = new Set();
+
+        for (let i = 0; i < results.length; i++)
+        {
+            let url = results[i].href;
+            let urlDecoded = decodeURIComponent(url);
+            let id = url.split('/')[4];
+            if (!processedIds.has(id))
+            {
+                processedIds.add(id);
+                let selector = '.review-element .titleblock a.title[href="' + urlDecoded + '"]';
+                addTranslation(type, i, url, id, selector);
             }
         }
     }
