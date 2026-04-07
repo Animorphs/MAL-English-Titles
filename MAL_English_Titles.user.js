@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.3.0
+// @version      2.3.1
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM.setValue
@@ -648,6 +648,7 @@ function addTranslation(type, count, url, id, selector, parent = false, tile = f
     let styleIdEnd = ""
     if (tile)
     {
+        ensureTileLayoutStyles();
         styleId = '<h3 class="h3_anime_subtitle" id="' + type + count + '">';
         styleIdEnd = '</h3>';
     }
@@ -668,29 +669,6 @@ function addTranslation(type, count, url, id, selector, parent = false, tile = f
             {
                 element = element.parentElement;
             }
-
-            if (tile)
-            {
-                const titleTextContainer = element.closest('.title-text');
-                if (titleTextContainer)
-                {
-                    const existingH3 = titleTextContainer.querySelector('h3.h3_anime_subtitle');
-                    if (existingH3 && existingH3.textContent.trim() === englishTitle)
-                    {
-                        return;
-                    }
-                }
-            }
-
-            if (!tile)
-            {
-                const japaneseTitle = element.textContent.trim();
-                if (japaneseTitle === englishTitle)
-                {
-                    return;
-                }
-            }
-
             const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
             element.parentNode.insertBefore(translation, element);
         });
