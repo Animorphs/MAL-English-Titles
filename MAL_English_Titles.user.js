@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.2.3
+// @version      2.3.0
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM.setValue
@@ -28,16 +28,17 @@ async function translate()
         let id = LOCATION_HREF.includes('.php') ? LOCATION_HREF.split('id=')[1] : LOCATION_HREF.split('/')[4];
 
         let type = LOCATION_HREF.includes('/anime') ? "anime" : "manga";
+        let store = type === 'anime' ? storedAnime : storedManga;
         if (titleHtml)
         {
             let title = titleHtml.innerText;
             console.log(`Updated ${type} ${id}: ${title}`);
-            type == 'anime' ? await storeAnime(id, title) : await storeManga(id, title);
+            type === 'anime' ? await storeAnime(id, title) : await storeManga(id, title);
         }
-        else if (storedAnime[id][0] === '' || !storedAnime.hasOwnProperty(id))
+        else if (!store || !store.hasOwnProperty(id) || store[id][0] === '')
         {
             console.log(`Updated ${type} ${id}`);
-            type == 'anime' ? await storeAnime(id, '') : await storeManga(id, '');
+            type === 'anime' ? await storeAnime(id, '') : await storeManga(id, '');
         }
     }
 
@@ -53,7 +54,6 @@ async function translate()
                 let url = results[i].children[0].href;
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
-                //console.log(id)
                 let selector = 'div[style="margin-bottom: 2px;"] > a[href="' + urlDecoded + '"]';
                 addTranslation(type, i, url, id, selector);
             }
@@ -63,8 +63,8 @@ async function translate()
     // Recommendations
     else if (LOCATION_HREF.includes('https://myanimelist.net/recommendations.php'))
     {
-        let results = document.querySelectorAll('.spaceit.borderClass a:has(strong)');
-        let arr = []
+        let results = Array.from(document.querySelectorAll('.spaceit.borderClass a')).filter((link) => link.querySelector('strong'));
+        let arr = new Set();
         let type = LOCATION_HREF.includes('&t=anime') ? 'anime' : 'manga';
         for (let i = 0; i < results.length; i++)
         {
@@ -73,12 +73,21 @@ async function translate()
                 let url = results[i].href;
                 let urlDecoded = decodeURIComponent(url);
                 let parts = urlDecoded.split('/' + type);
-                let urlShort = '/' + type + parts[1];
-                if (!arr.includes(urlShort))
+                if (parts.length < 2)
                 {
-                    arr.push(urlShort)
+                    continue;
+                }
+                let urlShort = '/' + type + parts[1];
+                if (!arr.has(urlShort))
+                {
+                    arr.add(urlShort);
                     let id = url.split('/')[4];
-                    let selector = 'td > a[href*="' + urlShort + '"]:not(:has(+ div[style="font-weight:bold"]))';
+                    let next = results[i].nextElementSibling;
+                    if (next && next.getAttribute('style') === 'font-weight:bold')
+                    {
+                        results[i].dataset.engSkip = '1';
+                    }
+                    let selector = 'td > a[href*="' + urlShort + '"]:not([data-eng-skip])';
                     addTranslation(type, i, url, id, selector);
                 }
             }
@@ -122,7 +131,7 @@ async function translate()
     // Anime List and Manga List
     else if (LOCATION_HREF.includes('https://myanimelist.net/animelist') || LOCATION_HREF.includes('https://myanimelist.net/mangalist'))
     {
-        let type = LOCATION_HREF.substring(24, 29);
+        let type = LOCATION_HREF.includes('/animelist') ? 'anime' : 'manga';
         let results = document.querySelectorAll('tbody:not([style]) .data.title');
 
         function processResults(tempResults)
@@ -140,9 +149,9 @@ async function translate()
 
         function attachMutationObserver(listTable)
         {
-            new MutationObserver(function(mutationsList, observer)
+            new MutationObserver(function (mutationsList, observer)
             {
-                mutationsList.forEach(function(mutation)
+                mutationsList.forEach(function (mutation)
                 {
                     processResults(
                         Array.from(
@@ -158,7 +167,7 @@ async function translate()
                 }
             }).observe(
                 listTable,
-                {childList: true}
+                { childList: true }
             );
         }
 
@@ -174,11 +183,11 @@ async function translate()
         }
         else if (table)
         {
-            new MutationObserver(function(mutationsList, observer)
+            new MutationObserver(function (mutationsList, observer)
             {
-                mutationsList.some(function(mutation)
+                mutationsList.some(function (mutation)
                 {
-                    return Array.from(mutation.addedNodes).some(function(addedNode)
+                    return Array.from(mutation.addedNodes).some(function (addedNode)
                     {
                         if (addedNode.tagName === 'TABLE')
                         {
@@ -195,7 +204,7 @@ async function translate()
                 });
             }).observe(
                 table.parentElement,
-                {childList: true}
+                { childList: true }
             );
         }
     }
@@ -204,7 +213,7 @@ async function translate()
     else if (LOCATION_HREF.includes('https://myanimelist.net/search/'))
     {
         // Anime Results
-        let resultsAnime = document.querySelectorAll('[class="hoverinfo_trigger fw-b fl-l"][href*="/anime/"]');
+        let resultsAnime = document.querySelectorAll('a.fw-b.fl-l[href*="/anime/"]');
         for (let i = 0; i < resultsAnime.length; i++)
         {
             if (!document.getElementById('anime' + i))
@@ -212,13 +221,13 @@ async function translate()
                 let url = resultsAnime[i].href;
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b.fl-l';
+                let selector = 'a[href="' + urlDecoded + '"].fw-b.fl-l';
                 addTranslation('anime', i, url, id, selector, true);
             }
         }
 
         // Manga Results
-        let resultsManga = document.querySelectorAll('[class="hoverinfo_trigger fw-b"][href*="/manga/"]');
+        let resultsManga = document.querySelectorAll('a.fw-b[href*="/manga/"]');
         for (let i = 0; i < resultsManga.length; i++)
         {
             if (!document.getElementById('manga' + i))
@@ -226,7 +235,7 @@ async function translate()
                 let url = resultsManga[i].href;
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b';
+                let selector = 'a[href="' + urlDecoded + '"].fw-b';
                 addTranslation('manga', i, url, id, selector);
             }
         }
@@ -235,7 +244,7 @@ async function translate()
     // Anime Search
     else if (LOCATION_HREF.includes('https://myanimelist.net/anime.php?q') || LOCATION_HREF.includes('https://myanimelist.net/anime.php?cat'))
     {
-        let results = document.getElementsByClassName('hoverinfo_trigger fw-b fl-l');
+        let results = document.querySelectorAll('a.fw-b.fl-l[href*="/anime/"]');
         for (let i = 0; i < results.length; i++)
         {
             if (!document.getElementById('anime' + i))
@@ -243,7 +252,7 @@ async function translate()
                 let url = results[i].href;
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b.fl-l';
+                let selector = 'a[href="' + urlDecoded + '"].fw-b.fl-l';
                 addTranslation('anime', i, url, id, selector, true);
             }
         }
@@ -252,7 +261,7 @@ async function translate()
     // Manga Search
     else if (LOCATION_HREF.includes('https://myanimelist.net/manga.php?q') || LOCATION_HREF.includes('https://myanimelist.net/manga.php?cat'))
     {
-        let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
+        let results = document.querySelectorAll('a.fw-b[href*="/manga/"]');
         for (let i = 0; i < results.length; i++)
         {
             if (!document.getElementById('manga' + i))
@@ -260,7 +269,7 @@ async function translate()
                 let url = results[i].href;
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b';
+                let selector = 'a[href="' + urlDecoded + '"].fw-b';
                 addTranslation('manga', i, url, id, selector);
             }
         }
@@ -286,7 +295,7 @@ async function translate()
     // Reviews
     else if (LOCATION_HREF.includes('https://myanimelist.net/reviews.php'))
     {
-        let type = LOCATION_HREF.includes('t=manga') ? 'manga' : 'anime';
+        let type = LOCATION_HREF.includes('&t=manga') ? 'manga' : 'anime';
         let results = document.querySelectorAll('.review-element .titleblock a.title');
         let processedIds = new Set();
 
@@ -380,6 +389,52 @@ async function translate()
         }
     }
 
+    // Stacks
+    else if (LOCATION_HREF.includes('https://myanimelist.net/stacks/'))
+    {
+        const viewButton = document.querySelector('.view-style2 a.on');
+        const isTileView = viewButton && viewButton.classList.contains('tile');
+        const isSeasonalView = viewButton && viewButton.classList.contains('seasonal');
+        const linksSelector = isTileView
+            ? '.seasonal-anime .title > a[href*="/anime/"], .seasonal-anime .title > a[href*="/manga/"]'
+            : 'a.link-title[href*="/anime/"], a.link-title[href*="/manga/"]';
+
+        const links = document.querySelectorAll(linksSelector);
+        let animeCount = 0;
+        let mangaCount = 0;
+
+        links.forEach(function (link)
+        {
+            const url = link.href;
+            const urlDecoded = decodeURIComponent(url);
+            const id = url.split('/')[4];
+            const type = url.includes('/anime/') ? 'anime' : 'manga';
+            const count = type === 'anime' ? animeCount++ : mangaCount++;
+
+            if (!document.getElementById(type + count))
+            {
+                const selector = isTileView
+                    ? '.seasonal-anime .title > a[href="' + urlDecoded + '"]'
+                    : 'a.link-title[href="' + urlDecoded + '"]';
+
+                const useTileStyle = isSeasonalView || isTileView;
+                const useParent = !isTileView && !isSeasonalView;
+
+                addTranslation(type, count, url, id, selector, useParent, useTileStyle);
+
+                if (isTileView)
+                {
+                    ensureTileLayoutStyles();
+                    const translationEl = document.getElementById(type + count);
+                    if (translationEl)
+                    {
+                        translationEl.classList.add('eng-tile-title');
+                    }
+                }
+            }
+        });
+    }
+
     // Anime Producers
     else if (LOCATION_HREF.includes('https://myanimelist.net/anime/producer'))
     {
@@ -395,13 +450,13 @@ async function translate()
                     let urlDecoded = decodeURIComponent(url);
                     let id = url.split('/')[4];
                     let selector = '.seasonal-anime.js-seasonal-anime.js-anime-type-all > .title > a[href="' + urlDecoded + '"]';
-                    addTranslation('anime', i, url, id, selector, false, false, true);
+                    addTranslation('anime', i, url, id, selector, false, true, true);
                 }
             }
         }
-        //
+
         // Seasonal View
-        if (document.getElementsByClassName('js-btn-view-style2 seasonal on')[0])
+        else if (document.getElementsByClassName('js-btn-view-style2 seasonal on')[0])
         {
             let results = document.getElementsByClassName('link-title');
             for (let i = 0; i < results.length; i++)
@@ -476,7 +531,7 @@ async function translate()
     {
         // Anime Results
         let resultsAnime = document.querySelectorAll('[href*="/anime.php?id="]');
-        let animeIds = [];
+        let animeIds = new Set();
         for (let i = 0; i < resultsAnime.length; i++)
         {
             if (!document.getElementById('anime' + i))
@@ -486,18 +541,18 @@ async function translate()
                 let urlShortDecoded = decodeURIComponent(urlShort);
                 let id = url.split('=')[1];
                 let selector = 'a[href="' + urlShortDecoded + '"]';
-                if (!animeIds.includes(id))
+                if (!animeIds.has(id))
                 {
                     addTranslation('anime', i, url, id, selector);
                 }
-                animeIds.push(id);
+                animeIds.add(id);
             }
         }
 
         // Manga Results
         let resultsManga = document.querySelectorAll('[href*="/manga.php?id="]');
-        let mangaIds = [];
-        for (let i = 0; i < resultsManga.length-1; i++)
+        let mangaIds = new Set();
+        for (let i = 0; i < resultsManga.length - 1; i++)
         {
             if (!document.getElementById('manga' + i))
             {
@@ -506,11 +561,11 @@ async function translate()
                 let urlShortDecoded = decodeURIComponent(urlShort);
                 let id = url.split('=')[1];
                 let selector = 'a[href="' + urlShortDecoded + '"]';
-                if (!mangaIds.includes(id))
+                if (!mangaIds.has(id))
                 {
                     addTranslation('manga', i, url, id, selector);
                 }
-                mangaIds.push(id);
+                mangaIds.add(id);
             }
         }
     }
@@ -520,7 +575,7 @@ async function translate()
     {
         // Anime Results
         let resultsAnime = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit):not([href*="anime/season"])');
-        let animeIds = [];
+        let animeIds = new Set();
         for (let i = 0; i < resultsAnime.length; i++)
         {
             if (!document.getElementById('anime' + i))
@@ -529,18 +584,18 @@ async function translate()
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
                 let selector = 'a[href="' + urlDecoded + '"]:not(.picSurround > a)';
-                if (!animeIds.includes(id))
+                if (!animeIds.has(id))
                 {
                     addTranslation('anime', i, url, id, selector);
                 }
-                animeIds.push(id);
+                animeIds.add(id);
             }
         }
 
         // Manga Results
         let resultsManga = document.querySelectorAll('[href*="/manga/"]:not(.Lightbox_AddEdit)');
-        let mangaIds = [];
-        for (let i = 0; i < resultsManga.length; i+=2)
+        let mangaIds = new Set();
+        for (let i = 0; i < resultsManga.length; i += 2)
         {
             if (!document.getElementById('manga' + i))
             {
@@ -548,26 +603,46 @@ async function translate()
                 let urlDecoded = decodeURIComponent(url);
                 let id = url.split('/')[4];
                 let selector = 'a[href="' + urlDecoded + '"]:not(.picSurround > a)';
-                if (!mangaIds.includes(id))
+                if (!mangaIds.has(id))
                 {
                     addTranslation('manga', i, url, id, selector);
                 }
-                mangaIds.push(id);
+                mangaIds.add(id);
             }
         }
     }
 }
 
 // English title element to be added to page
-function createTranslationElement(styleId, englishTitle, styleIdEnd) {
+function createTranslationElement(styleId, englishTitle, styleIdEnd)
+{
     const container = document.createElement('div');
     container.innerHTML = styleId + englishTitle + styleIdEnd;
     container.firstElementChild.title = englishTitle;
     return container.firstElementChild;
 }
 
+// Inject shared tile layout styles (stacks/producers/etc.)
+function ensureTileLayoutStyles()
+{
+    if (document.getElementById('eng-tile-style'))
+    {
+        return;
+    }
+    const style = document.createElement('style');
+    style.id = 'eng-tile-style';
+    style.textContent =
+        '.seasonal-anime{min-height:285px;}' +
+        '.seasonal-anime .title{min-height:2.6em; line-height:1.15;}' +
+        '.seasonal-anime .title > a{display:block; line-height:1.15;}' +
+        '.seasonal-anime .title h3.h3_anime_subtitle{display:block; margin:0 0 2px 0; font-size:11px; line-height:1.4;}' +
+        '.seasonal-anime .category{display:block !important; visibility:visible !important; margin-top:0;}' +
+        '.eng-tile-title{font-size:11px; line-height:1.4; margin:0 0 2px 0;}';
+    document.head.appendChild(style);
+}
+
 // Get English title (storedAnime and getEnglishTitle) and add to page
-function addTranslation(type, count, url, id, selector, parent=false, tile=false, producer=false)
+function addTranslation(type, count, url, id, selector, parent = false, tile = false, producer = false)
 {
     let styleId = ""
     let styleIdEnd = ""
@@ -581,103 +656,79 @@ function addTranslation(type, count, url, id, selector, parent=false, tile=false
         styleId = '<div style="font-weight:bold" id="' + type + count + '">';
         styleIdEnd = '</div>';
     }
-    if (type === 'anime')
+    const isAnime = type === 'anime';
+    const hasCachedTitle = isAnime ? checkAnime : checkManga;
+    const store = isAnime ? storedAnime : storedManga;
+
+    function insertTranslations(englishTitle)
     {
-        if (producer)
+        document.querySelectorAll(selector).forEach(function (element)
         {
-            document.getElementsByClassName('category')[count].style.visibility = 'hidden'
-        }
-         if (checkAnime(id))
-        {
-            const englishTitle = storedAnime[id][0];
-
-            document.querySelectorAll(selector).forEach(function(element)
+            if (parent)
             {
-                if (parent)
+                element = element.parentElement;
+            }
+
+            if (tile)
+            {
+                const titleTextContainer = element.closest('.title-text');
+                if (titleTextContainer)
                 {
-                    element = element.parentElement;
-                }
-
-                // Check for tiles: don't add if h3 with same text already exists
-                if (tile) {
-                    const titleTextContainer = element.closest('.title-text');
-                    if (titleTextContainer) {
-                        const existingH3 = titleTextContainer.querySelector('h3.h3_anime_subtitle');
-                        if (existingH3 && existingH3.textContent.trim() === englishTitle) {
-                            return;
-                        }
-                    }
-                }
-
-                // Check for non-tiles: don't add if Japanese and English titles are the same
-                if (!tile) {
-                    const japaneseTitle = element.textContent.trim();
-                    if (japaneseTitle === englishTitle) {
+                    const existingH3 = titleTextContainer.querySelector('h3.h3_anime_subtitle');
+                    if (existingH3 && existingH3.textContent.trim() === englishTitle)
+                    {
                         return;
                     }
                 }
+            }
 
-                const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
-                element.parentNode.insertBefore(translation, element);
-            });
-        }
-        else
+            if (!tile)
+            {
+                const japaneseTitle = element.textContent.trim();
+                if (japaneseTitle === englishTitle)
+                {
+                    return;
+                }
+            }
+
+            const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
+            element.parentNode.insertBefore(translation, element);
+        });
+    }
+
+    if (hasCachedTitle(id))
+    {
+        const englishTitle = store[id][0];
+        if (englishTitle === '')
         {
-            getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd);
+            return;
+        }
+
+        insertTranslations(englishTitle);
+
+        if (producer && tile)
+        {
+            ensureTileLayoutStyles();
+            const translationEl = document.getElementById('anime' + count);
+            if (translationEl)
+            {
+                translationEl.classList.add('eng-tile-title');
+            }
         }
     }
-    else if (type === 'manga')
+    else
     {
-        if (checkManga(id))
-        {
-            const englishTitle = storedManga[id][0];
-
-            document.querySelectorAll(selector).forEach(function(element)
-            {
-                if (parent)
-                {
-                    element = element.parentElement;
-                }
-
-                // Check for tiles: don't add if h3 with same text already exists
-                if (tile) {
-                    const titleTextContainer = element.closest('.title-text');
-                    if (titleTextContainer) {
-                        const existingH3 = titleTextContainer.querySelector('h3.h3_anime_subtitle');
-                        if (existingH3 && existingH3.textContent.trim() === englishTitle) {
-                            return;
-                        }
-                    }
-                }
-
-                // Check for non-tiles: don't add if Japanese and English titles are the same
-                if (!tile) {
-                    const japaneseTitle = element.textContent.trim();
-                    if (japaneseTitle === englishTitle) {
-                        return;
-                    }
-                }
-
-                const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
-                element.parentNode.insertBefore(translation, element);
-            });
-        }
-        else
-        {
-            getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd);
-        }
+        getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd);
     }
 }
 
 // Request English title from MAL and send to be stored (storeAnime)
 function getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd)
 {
-    // Create new request
     let xhr = new XMLHttpRequest();
     xhr.responseType = 'document';
 
-    // Set the callback
-    xhr.onload = async function()
+    xhr.onload = async function ()
     {
         if (xhr.readyState === xhr.DONE && xhr.status === 200 && xhr.responseXML !== null)
         {
@@ -702,7 +753,12 @@ function getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd)
                 await storeManga(id, englishTitle);
             }
 
-            document.querySelectorAll(selector).forEach(function(element)
+            if (englishTitle === '')
+            {
+                return;
+            }
+
+            document.querySelectorAll(selector).forEach(function (element)
             {
                 if (parent)
                 {
@@ -714,7 +770,6 @@ function getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd)
         }
     };
 
-    // Send the request
     xhr.open('GET', url);
     xhr.send();
 }
@@ -777,19 +832,22 @@ function checkManga(id)
 var storedAnime;
 var storedManga;
 
-(async () => {
-// Get cached English titles if they exist, else create empty dictionary
-  storedAnime = await GM.getValue('anime');
-  storedManga = await GM.getValue('manga');
-  if (!storedAnime) {
-    await GM.setValue('anime', {});
-    storedAnime = {};
-  }
-  if (!storedManga) {
-    await GM.setValue('manga', {});
-    storedManga = {};
-  }
+(async () =>
+{
+    // Get cached English titles if they exist, else create empty dictionary
+    storedAnime = await GM.getValue('anime');
+    storedManga = await GM.getValue('manga');
+    if (!storedAnime)
+    {
+        await GM.setValue('anime', {});
+        storedAnime = {};
+    }
+    if (!storedManga)
+    {
+        await GM.setValue('manga', {});
+        storedManga = {};
+    }
 
-// Launch actual script
-  await translate();
+    // Launch actual script
+    await translate();
 })();
