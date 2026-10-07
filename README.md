@@ -1,43 +1,57 @@
 # MyAnimeList English Titles
-Add English titles to various anime and manga pages on MyAnimeList, while still displaying the Japanese titles.
 
-<b>Note:</b> If you are getting timed out of MAL after installation, please see the [FAQ](#faq).
+Add English titles across MyAnimeList's anime and manga pages, with the option to display them alongside the Japanese titles or on their own.
+
+**Note:** If MAL shows a CAPTCHA or temporarily times you out after installation, please see the [FAQ](#faq).
 
 ## 📝 Table of Contents
-  * [How to Install](#install)
-  * [FAQ](#faq)
-  * [Examples / Screenshots](#screenshots)
 
-## 💻 How to Install <a name = "install"></a>
-1. Download and install [Tampermonkey](https://www.tampermonkey.net/). Note: this script may or may not work properly with Greasemonkey and Violentmonkey.
-2. If you are using a Chromium-based browser (primarily Google Chrome, Microsoft Edge, Brave, or Opera) navigate to `chrome://extensions`, select "Details" in the Tampermonkey tile, and enable the "Allow user scripts" toggle.
+- [How to Install](#install)
+- [FAQ](#faq)
+- [Examples / Screenshots](#screenshots)
+
+## 💻 How to Install <a name="install"></a>
+
+1. Download and install [Tampermonkey](https://www.tampermonkey.net/). This script should also work with Greasemonkey and Violentmonkey, but has not been tested with them.
+2. If you use a Chromium-based browser such as Google Chrome, Microsoft Edge, Brave, or Opera, open `chrome://extensions`, select **Details** for Tampermonkey, and enable **Allow user scripts**.
 3. Open this script on [Greasy Fork](https://greasyfork.org/en/scripts/420200-mal-english-titles).
-4. Click "Install this script".
-5. Click "Install".
-6. Open [MAL](https://myanimelist.net/), and navigate to any of the pages pictured below.
-7. Done! See your translations!
+4. Click **Install this script**.
+5. Click **Install**.
+6. Open [MyAnimeList](https://myanimelist.net/) and navigate to a supported page.
+7. Use the **Language** menu to choose whether English titles appear alongside Japanese titles or on their own.
 
-## ❓ FAQ <a name = "faq"></a>
-1. <b>MAL is giving me a captcha?</b> When you browse pages with lots of titles that need translating in a short amount of time, this script sends <i>a lot</i> of requests, which MAL doesn't like. Simply complete the captcha, then go back to browsing. Timeouts are most likely to happen when you <i>first install</i>, are browsing lots of pages at once, or are visiting a personal list with a lot of content for the first time.
-2. <b>Why am I seeing the English title twice and not the Japanese title at all?</b> In the [MAL Default Settings](https://myanimelist.net/editprofile.php?go=listpreferences), set both "Anime Titles" and "Manga Titles" to "Main Title".
-3. <b>Why are some translations missing?</b> Most likely, MAL doesn't have an official English title for that anime or manga. Alternatively, if the script is retrieving lots of new translations, MAL may time you out, and the script will be unable to load the remaining translations on the page. To fix this, refresh and see question 1 above.
-4. <b>Why am I not getting translations on 'x' page?</b> Currently the script supports various pages throughout MAL, but not all, as support is implemented per endpoint. If you are not getting translations on <i>any</i> pages at all, submit a bug report. If you have a specific page that is not currently supported, submit a feature request.
-5. <b>I've encountered a bug?</b> Please submit a [bug report](https://github.com/Animorphs/MAL-English-Titles/issues/new/choose).
-6. <b>I've got a great idea?</b> Please submit a [feature request](https://github.com/Animorphs/MAL-English-Titles/issues/new/choose).
+## ❓ FAQ <a name="faq"></a>
 
-## 📸 Examples / Screenshots <a name = "screenshots"></a>
+1. **Why is MAL showing a CAPTCHA or timing me out?**  
+   When you visit a page containing many uncached titles, the script may need to send numerous requests to MAL. MAL may temporarily rate-limit these requests. Complete the CAPTCHA, if shown, and then return to browsing. This is most likely to happen when you first install the script, open many pages at once, or visit a large personal list for the first time.
+
+2. **Why am I seeing the English title twice instead of the Japanese title?**  
+   In your [MAL Default Settings](https://myanimelist.net/editprofile.php?go=listpreferences), set both **Anime Titles** and **Manga Titles** to **Main Title**.
+
+3. **Why are some English titles missing?**  
+   MAL may not have an official English title for that anime or manga. Alternatively, MAL may have temporarily rate-limited the script while it was retrieving many new titles. Try refreshing the page later and see question 1 above.
+
+4. **Why aren't titles being translated on a particular page?**  
+   First, ensure you completed step 2 of the [installation instructions](#install) if you use a Chromium-based browser. The script supports many pages throughout MAL, but support is implemented separately for each type of page. If translations do not work anywhere, please submit a bug report. If only a particular page is unsupported, please submit a feature request.
+
+5. **I found a bug. What should I do?**  
+   Please submit a [bug report](https://github.com/Animorphs/MAL-English-Titles/issues/new/choose).
+
+6. **I have an idea for the script. Where can I suggest it?**  
+   Please submit a [feature request](https://github.com/Animorphs/MAL-English-Titles/issues/new/choose).
+
+## 📸 Examples / Screenshots <a name="screenshots"></a>
+
 ### Personal Anime / Manga List
-<img src='https://i.imgur.com/KbTKPZW.png'>
+
+<img src="https://i.imgur.com/12iQQDJ.png">
 
 ### Top Anime / Manga
-<img src='https://i.imgur.com/QBBR33t.png'>
 
-### Seasonal Anime
-<img src='https://i.imgur.com/gTFfCad.png'>
+<img src="https://i.imgur.com/jz4U7pk.png">
 
-### Search
-<img src='https://i.imgur.com/pXIEkdO.png'>
+Many more pages are supported throughout MyAnimeList!
 
-<i>Special thanks to nicegamer7 for their code contributions.</i>
+*Special thanks to nicegamer7 for their code contributions.*
 
-<i>Parts of this script were developed with the assistance of AI.</i>
+*Parts of this script were developed with the assistance of AI.*
