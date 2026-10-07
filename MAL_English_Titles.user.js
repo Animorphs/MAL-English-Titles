@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      2.3.1
+// @version      3.0.0
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM.setValue
@@ -12,820 +12,1026 @@
 // @downloadURL  https://raw.githubusercontent.com/Animorphs/MAL-English-Titles/master/MAL_English_Titles.user.js
 // ==/UserScript==
 
+const CONFIG = {
+    STORAGE: {
+        ANIME: 'anime',
+        MANGA: 'manga',
+        MODE: 'titleDisplayMode',
+        TITLE_MODE_NOTICE_SITE: 'titleModeUpdateNoticeSeenSite',
+        TITLE_MODE_NOTICE_OWNLIST: 'titleModeUpdateNoticeSeenOwnList'
+    },
+    MODES: { COMBINED: 'prepend', ENGLISH: 'replace', JAPANESE: 'original' },
+    EMPTY_CACHE_TTL: 2628000000,
+    MAX_CONCURRENT_LOOKUPS: 4,
+    REQUEST_TIMEOUT: 20000
+};
 
+const TITLE_MODE_OPTIONS = [
+    { value: CONFIG.MODES.COMBINED, label: 'English and Japanese' },
+    { value: CONFIG.MODES.ENGLISH, label: 'English only' },
+    { value: CONFIG.MODES.JAPANESE, label: 'Japanese only' }
+];
 
-// Get Japanese titles from page, and send to be translated (addTranslation)
-async function translate()
+const TITLE_STYLES = `
+    .eng-title-mode-ownlist { display: inline-block; position: relative; }
+    .eng-title-mode-ownlist > .eng-title-mode-trigger {
+        background: none; border: 0; color: #fff; cursor: pointer; font: inherit;
+        margin-right: 8px; padding: 0;
+    }
+    .eng-title-mode-ownlist .eng-title-mode-dropdown {
+        background: #fff; border: 1px solid #2e51a2; box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+        display: none; line-height: normal; min-width: 180px; position: absolute;
+        right: 7px; top: 31px; z-index: 20;
+    }
+    .eng-title-mode-ownlist:is(.hover, .open) .eng-title-mode-dropdown { display: block; }
+    .eng-title-mode-ownlist .eng-title-mode-option {
+        background: #fff; border: 0; color: #2e51a2; cursor: pointer; display: block;
+        font: bold 12px Arial, sans-serif; padding: 9px 12px 9px 28px; position: relative;
+        text-align: left; white-space: nowrap; width: 100%;
+    }
+    .eng-title-mode-ownlist .eng-title-mode-option:hover { background: #e1e7f5; }
+    .eng-title-mode-ownlist .eng-title-mode-option::before {
+        content: ''; left: 11px; position: absolute;
+    }
+    .eng-title-mode-ownlist .eng-title-mode-option[aria-checked="true"]::before { content: '\\2713'; }
+    #nav > .eng-title-mode-nav { margin-right: 4.5px; }
+    #nav > .eng-title-mode-nav > .eng-title-mode-nav-trigger {
+        text-align: center; text-indent: 0; white-space: nowrap; width: 72px;
+    }
+    .eng-title-mode-nav.hover > ul { display: block !important; }
+    .eng-title-mode-nav .eng-title-mode-option { white-space: nowrap; }
+    .eng-title-mode-nav .eng-title-mode-option::before {
+        content: ''; display: inline-block; width: 17px;
+    }
+    .eng-title-mode-nav .eng-title-mode-option[aria-checked="true"]::before { content: '\\2713'; }
+
+    .eng-title-mode-update-target {
+        outline: 3px solid #f6c343 !important; outline-offset: 2px;
+    }
+    .eng-title-mode-update-popup {
+        --eng-title-arrow-left: 50%;
+        background: #fff; border: 2px solid #2e51a2; border-radius: 6px;
+        box-shadow: 0 5px 18px rgba(0, 0, 0, .38); box-sizing: border-box;
+        color: #323232 !important; font: 14px/1.45 Arial, sans-serif !important;
+        max-width: calc(100vw - 24px); padding: 18px; position: fixed;
+        text-align: left !important; width: 340px; z-index: 100000;
+    }
+    .eng-title-mode-update-popup::before,
+    .eng-title-mode-update-popup::after {
+        border-left: 9px solid transparent; border-right: 9px solid transparent;
+        content: ''; left: var(--eng-title-arrow-left); position: absolute;
+        transform: translateX(-50%);
+    }
+    .eng-title-mode-update-popup:not(.above)::before {
+        border-bottom: 10px solid #2e51a2; top: -11px;
+    }
+    .eng-title-mode-update-popup:not(.above)::after {
+        border-bottom: 9px solid #fff; top: -8px;
+    }
+    .eng-title-mode-update-popup.above::before {
+        border-top: 10px solid #2e51a2; bottom: -11px;
+    }
+    .eng-title-mode-update-popup.above::after {
+        border-top: 9px solid #fff; bottom: -8px;
+    }
+    .eng-title-mode-update-brand {
+        color: #5b6472 !important; font: bold 10px/1.2 Arial, sans-serif !important;
+        letter-spacing: .7px; margin: 0 0 5px !important; padding: 0 !important;
+        text-align: left !important; text-transform: uppercase;
+    }
+    .eng-title-mode-update-heading {
+        border: 0 !important; color: #2e51a2 !important; font: bold 18px/1.2 Arial, sans-serif !important;
+        margin: 0 0 9px !important; padding: 0 !important; text-align: left !important;
+    }
+    .eng-title-mode-update-message {
+        color: #323232 !important; font: 14px/1.45 Arial, sans-serif !important;
+        margin: 0 0 10px !important; padding: 0 !important; text-align: left !important;
+    }
+    .eng-title-mode-update-options { margin: 0 0 15px; }
+    .eng-title-mode-update-option {
+        align-items: center; color: #323232 !important; display: flex;
+        font: 14px/1.5 Arial, sans-serif !important; gap: 8px; text-align: left !important;
+    }
+    .eng-title-mode-update-option::before {
+        color: #2e51a2; content: '\\2713'; font-weight: bold; width: 13px;
+    }
+    .eng-title-mode-update-actions { display: flex; justify-content: flex-end; }
+    .eng-title-mode-update-popup .eng-title-mode-update-dismiss {
+        background: #2e51a2; border: 0; border-radius: 3px; color: #fff; cursor: pointer;
+        font: bold 13px Arial, sans-serif; margin: 0; padding: 7px 16px;
+    }
+    .eng-title-mode-update-popup .eng-title-mode-update-dismiss:hover { background: #1d439b; }
+    .eng-title-mode-update-popup .eng-title-mode-update-dismiss:focus-visible {
+        outline: 2px solid #f6c343; outline-offset: 2px;
+    }
+
+    .eng-title-translation { display: block; font-weight: bold; }
+    .eng-title-context-related,
+    .eng-title-context-ranking,
+    .eng-title-context-table,
+    .eng-title-context-profile,
+    .eng-title-context-watch,
+    .eng-title-source-related,
+    .eng-title-source-ranking,
+    .eng-title-source-table,
+    .eng-title-source-profile,
+    .eng-title-source-watch {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .eng-title-context-table,
+    .eng-title-source-table,
+    .eng-title-context-profile,
+    .eng-title-source-profile { display: block; max-width: 100%; }
+    .eng-title-context-character,
+    .eng-title-source-character {
+        display: block; max-width: 100%; overflow-wrap: anywhere; white-space: normal;
+    }
+    .eng-title-context-blog { display: inline; font-weight: normal; }
+    .user-statistics-stats:has(.eng-title-context-profile, .eng-title-source-profile) {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .user-statistics-stats:has(.eng-title-context-profile, .eng-title-source-profile) .statistics-updates .data {
+        overflow: hidden;
+    }
+    .eng-title-context-overlay {
+        bottom: var(--eng-title-overlay-bottom, 2.4em); box-sizing: border-box; color: #fff; cursor: default;
+        display: -webkit-box; font-family: Avenir, "lucida grande", tahoma, verdana, arial, sans-serif;
+        font-size: 11px; left: 5px; line-height: 1.2;
+        overflow: hidden; padding: 0 !important; position: absolute; right: 5px;
+        text-shadow: 0 1px 2px #000; -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2; z-index: 2;
+    }
+    .eng-title-source-overlay {
+        display: -webkit-box !important; overflow: hidden;
+        -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    }
+    .widget.seasonal .eng-title-source-overlay {
+        padding-top: var(--eng-title-source-padding-top, 15px) !important;
+    }
+    .seasonal-anime.eng-title-tile-layout { min-height: 285px; }
+    .seasonal-anime.eng-title-tile-layout .title { min-height: 2.6em; line-height: 1.15; }
+    .seasonal-anime.eng-title-tile-layout .title > a { display: block; line-height: 1.15; }
+    .seasonal-anime.eng-title-tile-layout .title h3.h3_anime_subtitle {
+        display: block; font-size: 11px; line-height: 1.4; margin: 0 0 2px;
+    }
+    .seasonal-anime.eng-title-tile-layout .category {
+        display: block !important; margin-top: 0; visibility: visible !important;
+    }
+    .eng-tile-title { font-size: 11px; line-height: 1.4; margin: 0 0 2px; }
+`;
+
+let titleDisplayMode = CONFIG.MODES.COMBINED;
+let storedAnime = {};
+let storedManga = {};
+let scanScheduled = false;
+let currentPageTitleCached = false;
+let activeLookups = 0;
+
+const titlePresentations = new Map();
+const processedTitleElements = new WeakSet();
+const pendingLookups = new Map();
+const lookupQueue = [];
+
+function injectStyles()
 {
-    const LOCATION_HREF = location.href;
-    const URL_REGEX = /https:\/\/myanimelist\.net\/(anime|manga)\/([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/;
-    const URL_PHP_REGEX = /https:\/\/myanimelist\.net\/(anime|manga)\.php\?id\=([1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)\/?.*/;
-
-    // Anime/Manga Page (store only, don't display)
-    if (URL_REGEX.test(LOCATION_HREF) || URL_PHP_REGEX.test(LOCATION_HREF))
-    {
-        let titleHtml = document.getElementsByClassName('title-english')[0];
-        let id = LOCATION_HREF.includes('.php') ? LOCATION_HREF.split('id=')[1] : LOCATION_HREF.split('/')[4];
-
-        let type = LOCATION_HREF.includes('/anime') ? "anime" : "manga";
-        let store = type === 'anime' ? storedAnime : storedManga;
-        if (titleHtml)
-        {
-            let title = titleHtml.innerText;
-            console.log(`Updated ${type} ${id}: ${title}`);
-            type === 'anime' ? await storeAnime(id, title) : await storeManga(id, title);
-        }
-        else if (!store || !store.hasOwnProperty(id) || store[id][0] === '')
-        {
-            console.log(`Updated ${type} ${id}`);
-            type === 'anime' ? await storeAnime(id, '') : await storeManga(id, '');
-        }
-    }
-
-    // Anime/Manga Page User Recommendations
-    if ((URL_REGEX.test(LOCATION_HREF) || URL_PHP_REGEX.test(LOCATION_HREF)) && LOCATION_HREF.includes('/userrecs'))
-    {
-        let results = document.querySelectorAll('[style*="margin-bottom: 2px"]');
-        let type = LOCATION_HREF.includes('/anime') ? 'anime' : 'manga';
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById(type + i))
-            {
-                let url = results[i].children[0].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'div[style="margin-bottom: 2px;"] > a[href="' + urlDecoded + '"]';
-                addTranslation(type, i, url, id, selector);
-            }
-        }
-    }
-
-    // Recommendations
-    else if (LOCATION_HREF.includes('https://myanimelist.net/recommendations.php'))
-    {
-        let results = Array.from(document.querySelectorAll('.spaceit.borderClass a')).filter((link) => link.querySelector('strong'));
-        let arr = new Set();
-        let type = LOCATION_HREF.includes('&t=anime') ? 'anime' : 'manga';
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById(type + i))
-            {
-                let url = results[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let parts = urlDecoded.split('/' + type);
-                if (parts.length < 2)
-                {
-                    continue;
-                }
-                let urlShort = '/' + type + parts[1];
-                if (!arr.has(urlShort))
-                {
-                    arr.add(urlShort);
-                    let id = url.split('/')[4];
-                    let next = results[i].nextElementSibling;
-                    if (next && next.getAttribute('style') === 'font-weight:bold')
-                    {
-                        results[i].dataset.engSkip = '1';
-                    }
-                    let selector = 'td > a[href*="' + urlShort + '"]:not([data-eng-skip])';
-                    addTranslation(type, i, url, id, selector);
-                }
-            }
-        }
-    }
-
-    // Anime Top
-    else if (LOCATION_HREF.includes('https://myanimelist.net/topanime.php'))
-    {
-        let results = document.getElementsByClassName('fl-l fs14 fw-b anime_ranking_h3');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = results[i].children[0].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = '.fl-l.fs14.fw-b.anime_ranking_h3 > a[href="' + urlDecoded + '"]';
-                addTranslation('anime', i, url, id, selector);
-            }
-        }
-    }
-
-    // Manga Top
-    else if (LOCATION_HREF.includes('https://myanimelist.net/topmanga.php'))
-    {
-        let results = document.getElementsByClassName('hoverinfo_trigger fs14 fw-b');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('manga' + i))
-            {
-                let url = results[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fs14.fw-b';
-                addTranslation('manga', i, url, id, selector);
-            }
-        }
-    }
-
-    // Anime List and Manga List
-    else if (LOCATION_HREF.includes('https://myanimelist.net/animelist') || LOCATION_HREF.includes('https://myanimelist.net/mangalist'))
-    {
-        let type = LOCATION_HREF.includes('/animelist') ? 'anime' : 'manga';
-        let results = document.querySelectorAll('tbody:not([style]) .data.title');
-
-        function processResults(tempResults)
-        {
-            for (let i = 0; i < tempResults.length; i++)
-            {
-                let url = tempResults[i].children[0].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('/')[4];
-                let selector = '.data.title > a[href="' + urlShortDecoded + '"]';
-                addTranslation(type, i, url, id, selector);
-            }
-        }
-
-        function attachMutationObserver(listTable)
-        {
-            new MutationObserver(function (mutationsList, observer)
-            {
-                mutationsList.forEach(function (mutation)
-                {
-                    processResults(
-                        Array.from(
-                            mutation.addedNodes,
-                            (addedNode) => addedNode.children[0].children[3]
-                        )
-                    );
-                });
-
-                if ((listTable.children.length - 1) % 150 !== 0)
-                {
-                    observer.disconnect();
-                }
-            }).observe(
-                listTable,
-                { childList: true }
-            );
-        }
-
-        let table = document.querySelector('table');
-
-        if (results.length)
-        {
-            processResults(results);
-            if (results.length === 150)
-            {
-                attachMutationObserver(table);
-            }
-        }
-        else if (table)
-        {
-            new MutationObserver(function (mutationsList, observer)
-            {
-                mutationsList.some(function (mutation)
-                {
-                    return Array.from(mutation.addedNodes).some(function (addedNode)
-                    {
-                        if (addedNode.tagName === 'TABLE')
-                        {
-                            let results = addedNode.querySelectorAll('.data.title');
-                            processResults(results);
-                            if (results.length === 150)
-                            {
-                                attachMutationObserver(addedNode);
-                            }
-                            observer.disconnect();
-                            return true;
-                        }
-                    });
-                });
-            }).observe(
-                table.parentElement,
-                { childList: true }
-            );
-        }
-    }
-
-    // Search
-    else if (LOCATION_HREF.includes('https://myanimelist.net/search/'))
-    {
-        // Anime Results
-        let resultsAnime = document.querySelectorAll('a.fw-b.fl-l[href*="/anime/"]');
-        for (let i = 0; i < resultsAnime.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = resultsAnime[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].fw-b.fl-l';
-                addTranslation('anime', i, url, id, selector, true);
-            }
-        }
-
-        // Manga Results
-        let resultsManga = document.querySelectorAll('a.fw-b[href*="/manga/"]');
-        for (let i = 0; i < resultsManga.length; i++)
-        {
-            if (!document.getElementById('manga' + i))
-            {
-                let url = resultsManga[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].fw-b';
-                addTranslation('manga', i, url, id, selector);
-            }
-        }
-    }
-
-    // Anime Search
-    else if (LOCATION_HREF.includes('https://myanimelist.net/anime.php?q') || LOCATION_HREF.includes('https://myanimelist.net/anime.php?cat'))
-    {
-        let results = document.querySelectorAll('a.fw-b.fl-l[href*="/anime/"]');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = results[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].fw-b.fl-l';
-                addTranslation('anime', i, url, id, selector, true);
-            }
-        }
-    }
-
-    // Manga Search
-    else if (LOCATION_HREF.includes('https://myanimelist.net/manga.php?q') || LOCATION_HREF.includes('https://myanimelist.net/manga.php?cat'))
-    {
-        let results = document.querySelectorAll('a.fw-b[href*="/manga/"]');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('manga' + i))
-            {
-                let url = results[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].fw-b';
-                addTranslation('manga', i, url, id, selector);
-            }
-        }
-    }
-
-    // Anime Seasonal
-    else if (LOCATION_HREF.includes('https://myanimelist.net/anime/season'))
-    {
-        let results = document.getElementsByClassName('link-title');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = results[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"].link-title';
-                addTranslation('anime', i, url, id, selector, false, true);
-            }
-        }
-    }
-
-    // Reviews
-    else if (LOCATION_HREF.includes('https://myanimelist.net/reviews.php'))
-    {
-        let type = LOCATION_HREF.includes('&t=manga') ? 'manga' : 'anime';
-        let results = document.querySelectorAll('.review-element .titleblock a.title');
-        let processedIds = new Set();
-
-        for (let i = 0; i < results.length; i++)
-        {
-            let url = results[i].href;
-            let urlDecoded = decodeURIComponent(url);
-            let id = url.split('/')[4];
-            if (!processedIds.has(id))
-            {
-                processedIds.add(id);
-                let selector = '.review-element .titleblock a.title[href="' + urlDecoded + '"]';
-                addTranslation(type, i, url, id, selector);
-            }
-        }
-    }
-
-    // Anime Genres
-    else if (LOCATION_HREF.includes('https://myanimelist.net/anime/genre'))
-    {
-        // Seasonal View
-        if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
-        {
-            let results = document.getElementsByClassName('link-title');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('anime' + i))
-                {
-                    let url = results[i].href;
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('anime', i, url, id, selector, true, true);
-                }
-            }
-        }
-
-        // List View
-        else if (document.getElementsByClassName('js-btn-view-style list on')[0])
-        {
-            let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('anime' + i))
-                {
-                    let url = results[i].href;
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b';
-                    addTranslation('anime', i, url, id, selector);
-                }
-            }
-        }
-    }
-
-    // Manga Genres
-    else if (LOCATION_HREF.includes('https://myanimelist.net/manga/genre') || LOCATION_HREF.includes('https://myanimelist.net/manga/adapted'))
-    {
-        // Seasonal View
-        if (document.getElementsByClassName('js-btn-view-style seasonal on')[0])
-        {
-            let results = document.getElementsByClassName('link-title');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('manga' + i))
-                {
-                    let url = results[i].href;
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('manga', i, url, id, selector, false, true);
-                }
-            }
-        }
-
-        // List View
-        else if (document.getElementsByClassName('js-btn-view-style list on')[0])
-        {
-            let results = document.getElementsByClassName('hoverinfo_trigger fw-b');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('manga' + i))
-                {
-                    let url = results[i].href;
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = 'a[href="' + urlDecoded + '"].hoverinfo_trigger.fw-b';
-                    addTranslation('manga', i, url, id, selector);
-                }
-            }
-        }
-    }
-
-    // Stacks
-    else if (LOCATION_HREF.includes('https://myanimelist.net/stacks/'))
-    {
-        const viewButton = document.querySelector('.view-style2 a.on');
-        const isTileView = viewButton && viewButton.classList.contains('tile');
-        const isSeasonalView = viewButton && viewButton.classList.contains('seasonal');
-        const linksSelector = isTileView
-            ? '.seasonal-anime .title > a[href*="/anime/"], .seasonal-anime .title > a[href*="/manga/"]'
-            : 'a.link-title[href*="/anime/"], a.link-title[href*="/manga/"]';
-
-        const links = document.querySelectorAll(linksSelector);
-        let animeCount = 0;
-        let mangaCount = 0;
-
-        links.forEach(function (link)
-        {
-            const url = link.href;
-            const urlDecoded = decodeURIComponent(url);
-            const id = url.split('/')[4];
-            const type = url.includes('/anime/') ? 'anime' : 'manga';
-            const count = type === 'anime' ? animeCount++ : mangaCount++;
-
-            if (!document.getElementById(type + count))
-            {
-                const selector = isTileView
-                    ? '.seasonal-anime .title > a[href="' + urlDecoded + '"]'
-                    : 'a.link-title[href="' + urlDecoded + '"]';
-
-                const useTileStyle = isSeasonalView || isTileView;
-                const useParent = !isTileView && !isSeasonalView;
-
-                addTranslation(type, count, url, id, selector, useParent, useTileStyle);
-
-                if (isTileView)
-                {
-                    ensureTileLayoutStyles();
-                    const translationEl = document.getElementById(type + count);
-                    if (translationEl)
-                    {
-                        translationEl.classList.add('eng-tile-title');
-                    }
-                }
-            }
-        });
-    }
-
-    // Anime Producers
-    else if (LOCATION_HREF.includes('https://myanimelist.net/anime/producer'))
-    {
-        // Tile View
-        if (document.getElementsByClassName('js-btn-view-style2 tile on')[0])
-        {
-            let results = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all ');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('anime' + i))
-                {
-                    let url = results[i].children[0].children[0].href
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = '.seasonal-anime.js-seasonal-anime.js-anime-type-all > .title > a[href="' + urlDecoded + '"]';
-                    addTranslation('anime', i, url, id, selector, false, true, true);
-                }
-            }
-        }
-
-        // Seasonal View
-        else if (document.getElementsByClassName('js-btn-view-style2 seasonal on')[0])
-        {
-            let results = document.getElementsByClassName('link-title');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('anime' + i))
-                {
-                    let url = results[i].href;
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = 'a[href="' + urlDecoded + '"].link-title';
-                    addTranslation('anime', i, url, id, selector, false, true);
-                }
-            }
-        }
-
-        // List View
-        else if (document.getElementsByClassName('js-btn-view-style2 list on')[0])
-        {
-            let results = document.getElementsByClassName('seasonal-anime js-seasonal-anime js-anime-type-all');
-            for (let i = 0; i < results.length; i++)
-            {
-                if (!document.getElementById('anime' + i))
-                {
-                    let url = results[i].children[0].children[0].children[0].href;
-                    let urlDecoded = decodeURIComponent(url);
-                    let id = url.split('/')[4];
-                    let selector = '.spaceit_pad > a[href="' + urlDecoded + '"]';
-                    addTranslation('anime', i, url, id, selector);
-                }
-            }
-        }
-    }
-
-    // Anime Shared
-    else if (LOCATION_HREF.includes('https://myanimelist.net/shared.php') && !LOCATION_HREF.includes('&type=manga'))
-    {
-        let results = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit):not([href*="anime/season"])');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = results[i].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlShortDecoded + '"]';
-                addTranslation('anime', i, url, id, selector);
-            }
-        }
-    }
-
-    // Manga Shared
-    else if (LOCATION_HREF.includes('https://myanimelist.net/shared.php') && LOCATION_HREF.includes('&type=manga'))
-    {
-        let results = document.querySelectorAll('[href*="/manga/"]:not(.Lightbox_AddEdit)');
-        for (let i = 0; i < results.length; i++)
-        {
-            if (!document.getElementById('manga' + i))
-            {
-                let url = results[i].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlShortDecoded + '"]';
-                addTranslation('manga', i, url, id, selector);
-            }
-        }
-    }
-
-    // History
-    else if (LOCATION_HREF.includes('https://myanimelist.net/history'))
-    {
-        // Anime Results
-        let resultsAnime = document.querySelectorAll('[href*="/anime.php?id="]');
-        let animeIds = new Set();
-        for (let i = 0; i < resultsAnime.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = resultsAnime[i].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('=')[1];
-                let selector = 'a[href="' + urlShortDecoded + '"]';
-                if (!animeIds.has(id))
-                {
-                    addTranslation('anime', i, url, id, selector);
-                }
-                animeIds.add(id);
-            }
-        }
-
-        // Manga Results
-        let resultsManga = document.querySelectorAll('[href*="/manga.php?id="]');
-        let mangaIds = new Set();
-        for (let i = 0; i < resultsManga.length - 1; i++)
-        {
-            if (!document.getElementById('manga' + i))
-            {
-                let url = resultsManga[i].href;
-                let urlShort = url.slice(23);
-                let urlShortDecoded = decodeURIComponent(urlShort);
-                let id = url.split('=')[1];
-                let selector = 'a[href="' + urlShortDecoded + '"]';
-                if (!mangaIds.has(id))
-                {
-                    addTranslation('manga', i, url, id, selector);
-                }
-                mangaIds.add(id);
-            }
-        }
-    }
-
-    // People
-    else if (LOCATION_HREF.includes('https://myanimelist.net/people'))
-    {
-        // Anime Results
-        let resultsAnime = document.querySelectorAll('[href*="/anime/"]:not(.Lightbox_AddEdit):not([href*="anime/season"])');
-        let animeIds = new Set();
-        for (let i = 0; i < resultsAnime.length; i++)
-        {
-            if (!document.getElementById('anime' + i))
-            {
-                let url = resultsAnime[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"]:not(.picSurround > a)';
-                if (!animeIds.has(id))
-                {
-                    addTranslation('anime', i, url, id, selector);
-                }
-                animeIds.add(id);
-            }
-        }
-
-        // Manga Results
-        let resultsManga = document.querySelectorAll('[href*="/manga/"]:not(.Lightbox_AddEdit)');
-        let mangaIds = new Set();
-        for (let i = 0; i < resultsManga.length; i += 2)
-        {
-            if (!document.getElementById('manga' + i))
-            {
-                let url = resultsManga[i].href;
-                let urlDecoded = decodeURIComponent(url);
-                let id = url.split('/')[4];
-                let selector = 'a[href="' + urlDecoded + '"]:not(.picSurround > a)';
-                if (!mangaIds.has(id))
-                {
-                    addTranslation('manga', i, url, id, selector);
-                }
-                mangaIds.add(id);
-            }
-        }
-    }
-}
-
-// English title element to be added to page
-function createTranslationElement(styleId, englishTitle, styleIdEnd)
-{
-    const container = document.createElement('div');
-    container.innerHTML = styleId + englishTitle + styleIdEnd;
-    container.firstElementChild.title = englishTitle;
-    return container.firstElementChild;
-}
-
-// Inject shared tile layout styles (stacks/producers/etc.)
-function ensureTileLayoutStyles()
-{
-    if (document.getElementById('eng-tile-style'))
-    {
-        return;
-    }
+    if (document.getElementById('eng-title-styles')) return;
     const style = document.createElement('style');
-    style.id = 'eng-tile-style';
-    style.textContent =
-        '.seasonal-anime{min-height:285px;}' +
-        '.seasonal-anime .title{min-height:2.6em; line-height:1.15;}' +
-        '.seasonal-anime .title > a{display:block; line-height:1.15;}' +
-        '.seasonal-anime .title h3.h3_anime_subtitle{display:block; margin:0 0 2px 0; font-size:11px; line-height:1.4;}' +
-        '.seasonal-anime .category{display:block !important; visibility:visible !important; margin-top:0;}' +
-        '.eng-tile-title{font-size:11px; line-height:1.4; margin:0 0 2px 0;}';
+    style.id = 'eng-title-styles';
+    style.textContent = TITLE_STYLES;
     document.head.appendChild(style);
 }
 
-// Get English title (storedAnime and getEnglishTitle) and add to page
-function addTranslation(type, count, url, id, selector, parent = false, tile = false, producer = false)
+function getModeOptionsHtml(elementName)
 {
-    let styleId = ""
-    let styleIdEnd = ""
-    if (tile)
+    return TITLE_MODE_OPTIONS.map(function (option)
     {
-        ensureTileLayoutStyles();
-        styleId = '<h3 class="h3_anime_subtitle" id="' + type + count + '">';
-        styleIdEnd = '</h3>';
-    }
-    else
-    {
-        styleId = '<div style="font-weight:bold" id="' + type + count + '">';
-        styleIdEnd = '</div>';
-    }
-    const isAnime = type === 'anime';
-    const hasCachedTitle = isAnime ? checkAnime : checkManga;
-    const store = isAnime ? storedAnime : storedManga;
-
-    function insertTranslations(englishTitle)
-    {
-        document.querySelectorAll(selector).forEach(function (element)
+        if (elementName === 'a')
         {
-            if (parent)
-            {
-                element = element.parentElement;
-            }
-            const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
-            element.parentNode.insertBefore(translation, element);
-        });
-    }
-
-    if (hasCachedTitle(id))
-    {
-        const englishTitle = store[id][0];
-        if (englishTitle === '')
-        {
-            return;
+            return `<li><a href="#" role="radio" class="eng-title-mode-option" data-title-mode="${option.value}">${option.label}</a></li>`;
         }
-
-        insertTranslations(englishTitle);
-
-        if (producer && tile)
-        {
-            ensureTileLayoutStyles();
-            const translationEl = document.getElementById('anime' + count);
-            if (translationEl)
-            {
-                translationEl.classList.add('eng-tile-title');
-            }
-        }
-    }
-    else
-    {
-        getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd);
-    }
+        return `<button type="button" role="radio" class="eng-title-mode-option" data-title-mode="${option.value}">${option.label}</button>`;
+    }).join('');
 }
 
-// Request English title from MAL and send to be stored (storeAnime)
-function getEnglishTitle(type, url, id, selector, parent, styleId, styleIdEnd)
+function updateTitleModeControls()
 {
-    let xhr = new XMLHttpRequest();
-    xhr.responseType = 'document';
-
-    xhr.onload = async function ()
+    document.querySelectorAll('[data-title-mode]').forEach(function (option)
     {
-        if (xhr.readyState === xhr.DONE && xhr.status === 200 && xhr.responseXML !== null)
+        option.setAttribute('aria-checked', option.dataset.titleMode === titleDisplayMode ? 'true' : 'false');
+    });
+}
+
+function bindTitleModeOptions(container)
+{
+    container.querySelectorAll('[data-title-mode]').forEach(function (option)
+    {
+        option.addEventListener('click', function (event)
         {
-            let englishTitleElement = xhr.responseXML.querySelector('.title-english');
+            event.preventDefault();
+            setTitleDisplayMode(option.dataset.titleMode);
+        });
+    });
+}
 
-            let englishTitle;
-            if (englishTitleElement)
-            {
-                englishTitle = englishTitleElement.innerText;
-            }
-            else
-            {
-                englishTitle = '';
-            }
+function initializeTitleModeControl()
+{
+    injectStyles();
+    if (document.body.classList.contains('ownlist')) initializeOwnListTitleModeControl();
+    else initializeNavigationTitleModeControl();
+    updateTitleModeControls();
+}
 
-            if (type === 'anime')
-            {
-                await storeAnime(id, englishTitle);
-            }
-            else if (type === 'manga')
-            {
-                await storeManga(id, englishTitle);
-            }
+function initializeOwnListTitleModeControl()
+{
+    const host = document.querySelector('.list-status-title .stats');
+    if (!host) return;
+    const control = document.createElement('span');
+    control.className = 'eng-title-mode-ownlist';
+    control.innerHTML = `
+        <button type="button" class="eng-title-mode-trigger" aria-haspopup="true" aria-expanded="false">
+            <i class="fa-solid fa-language"></i>
+            Language
+            <i class="fa-solid fa-angle-down"></i>
+        </button>
+        <span class="eng-title-mode-dropdown" role="radiogroup" aria-label="Title display">
+            ${getModeOptionsHtml('button')}
+        </span>`;
+    host.insertBefore(control, host.firstChild);
+    bindTitleModeOptions(control);
 
-            if (englishTitle === '')
-            {
-                return;
-            }
+    const trigger = control.querySelector('.eng-title-mode-trigger');
+    let suppressHoverUntilLeave = false;
 
-            document.querySelectorAll(selector).forEach(function (element)
+    function updateExpandedState()
+    {
+        trigger.setAttribute('aria-expanded', control.matches('.hover, .open') ? 'true' : 'false');
+    }
+
+    control.addEventListener('mouseenter', function ()
+    {
+        if (!suppressHoverUntilLeave) control.classList.add('hover');
+        updateExpandedState();
+    });
+    control.addEventListener('mouseleave', function ()
+    {
+        control.classList.remove('hover');
+        suppressHoverUntilLeave = false;
+        updateExpandedState();
+    });
+    trigger.addEventListener('click', function (event)
+    {
+        event.stopPropagation();
+        if (control.classList.contains('open'))
+        {
+            control.classList.remove('open', 'hover');
+            suppressHoverUntilLeave = true;
+        }
+        else
+        {
+            control.classList.add('open');
+        }
+        updateExpandedState();
+    });
+    document.addEventListener('click', function (event)
+    {
+        if (!control.contains(event.target))
+        {
+            control.classList.remove('open', 'hover');
+            suppressHoverUntilLeave = false;
+            updateExpandedState();
+        }
+    });
+}
+
+function initializeNavigationTitleModeControl()
+{
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    const control = document.createElement('li');
+    control.className = 'small2 eng-title-mode-nav';
+    control.innerHTML = `
+        <a href="#" class="non-link eng-title-mode-nav-trigger">Language</a>
+        <ul class="x2-wider" role="radiogroup" aria-label="Title display">
+            ${getModeOptionsHtml('a')}
+        </ul>`;
+    const eventItem = Array.from(nav.children).find(function (item) { return item.classList.contains('bunkasai'); });
+    nav.insertBefore(control, eventItem || null);
+    bindTitleModeOptions(control);
+    control.addEventListener('mouseenter', function () { control.classList.add('hover'); });
+    control.addEventListener('mouseleave', function () { control.classList.remove('hover'); });
+}
+
+async function maybeShowTitleModeUpdateNotice()
+{
+    const ownList = document.body.classList.contains('ownlist');
+    const noticeKey = ownList
+        ? CONFIG.STORAGE.TITLE_MODE_NOTICE_OWNLIST
+        : CONFIG.STORAGE.TITLE_MODE_NOTICE_SITE;
+    if (await GM.getValue(noticeKey)) return;
+
+    const target = document.querySelector('.eng-title-mode-trigger, .eng-title-mode-nav-trigger');
+    if (!target) return;
+
+    const popup = document.createElement('aside');
+    popup.className = 'eng-title-mode-update-popup';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-labelledby', 'eng-title-mode-update-heading');
+    const locationText = ownList
+        ? 'above the list'
+        : 'in the blue navigation bar';
+    popup.innerHTML = `
+        <div class="eng-title-mode-update-brand">MAL English Titles browser extension</div>
+        <div id="eng-title-mode-update-heading" class="eng-title-mode-update-heading">New title language options</div>
+        <div class="eng-title-mode-update-message">
+            This extension now lets you use the highlighted <strong>Language</strong> menu
+            ${locationText} to choose:
+        </div>
+        <div class="eng-title-mode-update-options">
+            <div class="eng-title-mode-update-option">English + Japanese</div>
+            <div class="eng-title-mode-update-option">English only</div>
+            <div class="eng-title-mode-update-option">Japanese only</div>
+        </div>
+        <div class="eng-title-mode-update-actions">
+            <button type="button" class="eng-title-mode-update-dismiss">Got it</button>
+        </div>`;
+    document.body.appendChild(popup);
+    target.classList.add('eng-title-mode-update-target');
+
+    function positionPopup()
+    {
+        const targetRect = target.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
+        const gap = 12;
+        const pageMargin = 12;
+        const showAbove = targetRect.bottom + gap + popupRect.height > window.innerHeight
+            && targetRect.top - gap - popupRect.height >= pageMargin;
+        const top = showAbove
+            ? targetRect.top - gap - popupRect.height
+            : targetRect.bottom + gap;
+        const idealLeft = targetRect.left + targetRect.width / 2 - popupRect.width / 2;
+        const left = Math.max(pageMargin, Math.min(idealLeft, window.innerWidth - popupRect.width - pageMargin));
+        const arrowLeft = Math.max(14, Math.min(
+            targetRect.left + targetRect.width / 2 - left,
+            popupRect.width - 14
+        ));
+
+        popup.classList.toggle('above', showAbove);
+        popup.style.left = left + 'px';
+        popup.style.top = Math.max(pageMargin, top) + 'px';
+        popup.style.setProperty('--eng-title-arrow-left', arrowLeft + 'px');
+    }
+
+    function dismissPopup()
+    {
+        window.removeEventListener('resize', positionPopup);
+        window.removeEventListener('scroll', positionPopup, true);
+        document.removeEventListener('keydown', handleKeydown);
+        target.removeEventListener('click', dismissPopup);
+        target.classList.remove('eng-title-mode-update-target');
+        popup.remove();
+    }
+
+    function handleKeydown(event)
+    {
+        if (event.key === 'Escape') dismissPopup();
+    }
+
+    popup.querySelector('.eng-title-mode-update-dismiss').addEventListener('click', dismissPopup);
+    target.addEventListener('click', dismissPopup);
+    document.addEventListener('keydown', handleKeydown);
+    window.addEventListener('resize', positionPopup);
+    window.addEventListener('scroll', positionPopup, true);
+    positionPopup();
+    await GM.setValue(noticeKey, true);
+}
+
+async function setTitleDisplayMode(mode)
+{
+    if (!TITLE_MODE_OPTIONS.some(function (option) { return option.value === mode; }) || mode === titleDisplayMode) return;
+    titleDisplayMode = mode;
+    updateTitleModeControls();
+    refreshPresentedTitles();
+    await GM.setValue(CONFIG.STORAGE.MODE, titleDisplayMode);
+}
+
+function removePresentationArtifacts(presentation)
+{
+    if (presentation.placement === 'overlay')
+    {
+        const link = presentation.element.closest('a');
+        const host = link && link.parentElement;
+        if (host)
+        {
+            Array.from(host.children).forEach(function (child)
             {
-                if (parent)
-                {
-                    element = element.parentElement;
-                }
-                const translation = createTranslationElement(styleId, englishTitle, styleIdEnd);
-                element.parentNode.insertBefore(translation, element);
+                if (!child.classList.contains('eng-title-translation')) return;
+                const translationKey = child.dataset.engTitleKey;
+                if (!translationKey || translationKey === presentation.translationKey) child.remove();
             });
         }
+    }
+    if (presentation.translation)
+    {
+        presentation.translation.remove();
+        presentation.translation = null;
+    }
+    if (presentation.replaced)
+    {
+        presentation.element.innerHTML = presentation.originalHtml;
+        presentation.replaced = false;
+    }
+    if (presentation.context)
+    {
+        presentation.element.classList.remove('eng-title-source-' + presentation.context);
+    }
+    if (presentation.seasonalOverlay)
+    {
+        presentation.element.style.removeProperty('--eng-title-source-padding-top');
+    }
+    if (presentation.tileHost)
+    {
+        presentation.tileHost.classList.remove('eng-title-tile-layout');
+        presentation.tileHost = null;
+    }
+}
+
+function createTranslationElement(presentation)
+{
+    const translation = document.createElement(presentation.tile ? 'h3' : 'span');
+    translation.className = 'eng-title-translation';
+    if (presentation.tile) translation.classList.add('h3_anime_subtitle');
+    if (presentation.tileTitle) translation.classList.add('eng-tile-title');
+    if (presentation.context) translation.classList.add('eng-title-context-' + presentation.context);
+    translation.dataset.engTitleKey = presentation.translationKey;
+    translation.title = presentation.englishTitle;
+    translation.textContent = presentation.parenthetical
+        ? ` (${presentation.englishTitle})`
+        : presentation.englishTitle;
+    return translation;
+}
+
+function insertTranslation(presentation, translation)
+{
+    if (presentation.placement === 'inside-before')
+    {
+        presentation.element.insertBefore(translation, presentation.element.firstChild);
+        presentation.translation = translation;
+        return;
+    }
+
+    let reference = presentation.element;
+    if (presentation.placement === 'before-parent') reference = presentation.element.parentElement;
+    else if (presentation.placement === 'overlay') reference = presentation.element.closest('a');
+    if (!reference || !reference.parentNode) return;
+    reference.parentNode.insertBefore(
+        translation,
+        presentation.placement === 'after' ? reference.nextSibling : reference
+    );
+    presentation.translation = translation;
+}
+
+function positionSeasonalOverlayTranslation(presentation)
+{
+    if (!presentation.translation || !presentation.seasonalOverlay) return;
+    const sourceStyle = getComputedStyle(presentation.element);
+    const sourceHeight = presentation.element.getBoundingClientRect().height;
+    const gradientPadding = parseFloat(sourceStyle.paddingTop) || 0;
+    const visibleTitleHeight = Math.max(0, sourceHeight - gradientPadding);
+    const translationHeight = presentation.translation.getBoundingClientRect().height;
+    const titleGap = 2;
+    presentation.translation.style.setProperty(
+        '--eng-title-overlay-bottom',
+        Math.ceil(visibleTitleHeight + titleGap) + 'px'
+    );
+    presentation.element.style.setProperty(
+        '--eng-title-source-padding-top',
+        Math.ceil(gradientPadding + translationHeight + titleGap) + 'px'
+    );
+}
+
+function replaceTitleText(element, englishTitle)
+{
+    const titleNode = Array.from(element.childNodes).find(function (node)
+    {
+        return node.nodeType === Node.TEXT_NODE && node.textContent.trim();
+    });
+    if (titleNode)
+    {
+        const leadingWhitespace = titleNode.textContent.match(/^\s*/)[0];
+        const trailingWhitespace = titleNode.textContent.match(/\s*$/)[0];
+        titleNode.textContent = leadingWhitespace + englishTitle + trailingWhitespace;
+        return;
+    }
+
+    const preferredSelectors = ['strong', 'b', '.title'];
+    for (const selector of preferredSelectors)
+    {
+        const candidates = Array.from(element.querySelectorAll(selector)).filter(function (candidate)
+        {
+            return candidate.textContent.trim();
+        });
+        if (candidates.length === 1)
+        {
+            replaceTitleText(candidates[0], englishTitle);
+            return;
+        }
+    }
+
+    const textChildren = Array.from(element.children).filter(function (child)
+    {
+        return child.textContent.trim();
+    });
+    if (textChildren.length === 1)
+    {
+        replaceTitleText(textChildren[0], englishTitle);
+        return;
+    }
+
+    element.textContent = englishTitle;
+}
+
+function renderTitlePresentation(presentation)
+{
+    removePresentationArtifacts(presentation);
+    if (titleDisplayMode === CONFIG.MODES.JAPANESE) return;
+    if (presentation.englishTitle === null)
+    {
+        ensureEnglishTitle(presentation);
+        return;
+    }
+    if (!presentation.englishTitle) return;
+    if (titleDisplayMode === CONFIG.MODES.ENGLISH)
+    {
+        replaceTitleText(presentation.element, presentation.englishTitle);
+        presentation.replaced = true;
+        return;
+    }
+
+    const translation = createTranslationElement(presentation);
+    insertTranslation(presentation, translation);
+    positionSeasonalOverlayTranslation(presentation);
+    if (presentation.translation && presentation.context)
+    {
+        presentation.element.classList.add('eng-title-source-' + presentation.context);
+    }
+    if (presentation.translation && presentation.tile)
+    {
+        presentation.tileHost = presentation.element.closest('.seasonal-anime');
+        if (presentation.tileHost) presentation.tileHost.classList.add('eng-title-tile-layout');
+    }
+}
+
+function registerTitle(element, info, options = {})
+{
+    if (!element || !info || processedTitleElements.has(element)) return;
+    processedTitleElements.add(element);
+    const cachedTitle = readCachedTitle(info);
+    const presentation = {
+        context: options.context || '',
+        element: element,
+        englishTitle: cachedTitle === undefined ? null : cachedTitle,
+        info: info,
+        lookupStarted: false,
+        originalHtml: element.innerHTML,
+        parenthetical: Boolean(options.parenthetical),
+        placement: options.placement || 'before',
+        replaced: false,
+        seasonalOverlay: Boolean(options.seasonalOverlay),
+        tile: Boolean(options.tile),
+        tileHost: null,
+        tileTitle: Boolean(options.tileTitle),
+        translation: null,
+        translationKey: info.type + ':' + info.id
     };
-
-    xhr.open('GET', url);
-    xhr.send();
+    titlePresentations.set(element, presentation);
+    renderTitlePresentation(presentation);
 }
 
-// Store English titles for anime in cache
-async function storeAnime(id, engTitle)
+function refreshPresentedTitles()
 {
-    storedAnime[id] = [engTitle, Date.now()];
-    GM.setValue('anime', storedAnime);
+    titlePresentations.forEach(renderTitlePresentation);
 }
 
-// Store English titles for manga in cache
-async function storeManga(id, engTitle)
+function ensureEnglishTitle(presentation)
 {
-    storedManga[id] = [engTitle, Date.now()];
-    GM.setValue('manga', storedManga);
-}
-
-// Check if English title for anime is cached, and recheck if empty + last check was >3 weeks
-function checkAnime(id)
-{
-    if (storedAnime.hasOwnProperty(id))
+    if (presentation.lookupStarted || titleDisplayMode === CONFIG.MODES.JAPANESE) return;
+    presentation.lookupStarted = true;
+    resolveEnglishTitle(presentation.info).then(function (englishTitle)
     {
-        if (storedAnime[id][0] === '')
+        presentation.englishTitle = englishTitle;
+        if (presentation.element.isConnected) renderTitlePresentation(presentation);
+    });
+}
+
+function getMediaInfo(link, expectedType)
+{
+    let url;
+    try { url = new URL(link.href, location.origin); }
+    catch (error) { return null; }
+    if (url.origin !== location.origin) return null;
+
+    let match = url.pathname.match(/^\/(anime|manga)\/([1-9][0-9]*)(?:\/.*)?$/);
+    if (!match)
+    {
+        const phpMatch = url.pathname.match(/^\/(anime|manga)\.php$/);
+        const id = url.searchParams.get('id');
+        if (!phpMatch || !/^[1-9][0-9]*$/.test(id || '')) return null;
+        match = [null, phpMatch[1], id];
+    }
+    if (expectedType && match[1] !== expectedType) return null;
+    return { type: match[1], id: match[2], url: `${location.origin}/${match[1]}/${match[2]}` };
+}
+
+function getRecommendationMediaInfo(link, currentMedia)
+{
+    const directInfo = getMediaInfo(link);
+    if (directInfo) return directInfo;
+    let url;
+    try { url = new URL(link.href, location.origin); }
+    catch (error) { return null; }
+    const match = url.pathname.match(/^\/recommendations\/(anime|manga)\/([1-9][0-9]*)-([1-9][0-9]*)\/?$/);
+    if (!match || !currentMedia || match[1] !== currentMedia.type) return null;
+    const id = match[2] === currentMedia.id ? match[3] : match[2];
+    return { type: match[1], id: id, url: `${location.origin}/${match[1]}/${id}` };
+}
+
+function getCurrentMediaInfo()
+{
+    return getMediaInfo({ href: location.href });
+}
+
+function findMediaTitleElement(link)
+{
+    const nestedTitle = link.querySelector(':scope > span.title, :scope > h3 > span.title');
+    if (nestedTitle) return nestedTitle;
+    return Array.from(link.childNodes).some(function (node)
+    {
+        return node.nodeType === Node.TEXT_NODE && node.textContent.trim();
+    }) ? link : null;
+}
+
+function registerLinks(selector, options = {})
+{
+    document.querySelectorAll(selector).forEach(function (link)
+    {
+        if (options.filter && !options.filter(link)) return;
+        const info = options.infoGetter ? options.infoGetter(link) : getMediaInfo(link, options.type);
+        const element = options.elementGetter ? options.elementGetter(link) : link;
+        registerTitle(element, info, options);
+    });
+}
+
+function registerTextMediaLinks(selector, options = {})
+{
+    registerLinks(selector, Object.assign({}, options, { elementGetter: findMediaTitleElement }));
+}
+
+function getTitleStore(type)
+{
+    return type === 'anime' ? storedAnime : storedManga;
+}
+
+function hasFreshCachedTitle(info)
+{
+    const store = getTitleStore(info.type);
+    if (!Object.prototype.hasOwnProperty.call(store, info.id)) return false;
+    return store[info.id][0] !== '' || Date.now() - store[info.id][1] <= CONFIG.EMPTY_CACHE_TTL;
+}
+
+function readCachedTitle(info)
+{
+    return hasFreshCachedTitle(info) ? getTitleStore(info.type)[info.id][0] : undefined;
+}
+
+async function storeEnglishTitle(info, englishTitle)
+{
+    const store = getTitleStore(info.type);
+    store[info.id] = [englishTitle, Date.now()];
+    await GM.setValue(info.type === 'anime' ? CONFIG.STORAGE.ANIME : CONFIG.STORAGE.MANGA, store);
+}
+
+function fetchEnglishTitle(info)
+{
+    return new Promise(function (resolve)
+    {
+        const xhr = new XMLHttpRequest();
+        xhr.responseType = 'document';
+        xhr.timeout = CONFIG.REQUEST_TIMEOUT;
+        xhr.onload = async function ()
         {
-            let dateNow = Date.now();
-            let dateOld = storedAnime[id][1];
-            if (dateNow - dateOld > 2628000000)
+            if (xhr.status !== 200 || !xhr.responseXML)
             {
-                console.log('Updated anime ' + id);
-                return false;
+                resolve('');
+                return;
             }
-        }
-        return true;
-    }
-    console.log('New anime ' + id);
-    return false;
+            const titleElement = xhr.responseXML.querySelector('.title-english');
+            const englishTitle = titleElement ? titleElement.textContent.trim() : '';
+            await storeEnglishTitle(info, englishTitle);
+            resolve(englishTitle);
+        };
+        xhr.onerror = function () { resolve(''); };
+        xhr.ontimeout = function () { resolve(''); };
+        xhr.open('GET', info.url);
+        xhr.send();
+    });
 }
 
-// Check if English title for manga is cached, and recheck if empty + last check was >3 weeks
-function checkManga(id)
+function drainLookupQueue()
 {
-    if (storedManga.hasOwnProperty(id))
+    while (activeLookups < CONFIG.MAX_CONCURRENT_LOOKUPS && lookupQueue.length)
     {
-        if (storedManga[id][0] === '')
+        const job = lookupQueue.shift();
+        activeLookups++;
+        fetchEnglishTitle(job.info).then(job.resolve).finally(function ()
         {
-            let dateNow = Date.now();
-            let dateOld = storedManga[id][1];
-            if (dateNow - dateOld > 2628000000)
-            {
-                console.log('Updated manga ' + id);
-                return false;
-            }
-        }
-        return true;
+            activeLookups--;
+            drainLookupQueue();
+        });
     }
-    console.log('New manga ' + id);
-    return false;
 }
-var storedAnime;
-var storedManga;
 
-(async () =>
+function resolveEnglishTitle(info)
 {
-    // Get cached English titles if they exist, else create empty dictionary
-    storedAnime = await GM.getValue('anime');
-    storedManga = await GM.getValue('manga');
-    if (!storedAnime)
+    const cachedTitle = readCachedTitle(info);
+    if (cachedTitle !== undefined) return Promise.resolve(cachedTitle);
+    const key = info.type + ':' + info.id;
+    if (pendingLookups.has(key)) return pendingLookups.get(key);
+    const lookup = new Promise(function (resolve)
     {
-        await GM.setValue('anime', {});
-        storedAnime = {};
-    }
-    if (!storedManga)
-    {
-        await GM.setValue('manga', {});
-        storedManga = {};
-    }
+        lookupQueue.push({ info: info, resolve: resolve });
+        drainLookupQueue();
+    });
+    pendingLookups.set(key, lookup);
+    lookup.finally(function () { pendingLookups.delete(key); });
+    return lookup;
+}
 
-    // Launch actual script
-    await translate();
+async function cacheCurrentMediaTitle()
+{
+    if (currentPageTitleCached) return;
+    const info = getCurrentMediaInfo();
+    if (!info) return;
+    currentPageTitleCached = true;
+    const titleElement = document.querySelector('.title-english');
+    if (titleElement) await storeEnglishTitle(info, titleElement.textContent.trim());
+    else if (!hasFreshCachedTitle(info)) await storeEnglishTitle(info, '');
+}
+
+function scanHomePage()
+{
+    document.querySelectorAll('#contentWrapper a[href]').forEach(function (link)
+    {
+        const info = getMediaInfo(link);
+        const element = findMediaTitleElement(link);
+        if (!info || !element) return;
+        const overlay = element.matches('span.title') && element.closest('a') === link;
+        registerTitle(element, info, {
+            context: overlay ? 'overlay' : 'home',
+            placement: overlay ? 'overlay' : 'before',
+            seasonalOverlay: Boolean(overlay && element.closest('.widget.seasonal'))
+        });
+    });
+}
+
+function scanMediaDetailPage(currentMedia)
+{
+    registerLinks('.entries-tile .entry .content .title > a[href], td.borderClass ul.entries > li > a[href]', {
+        context: 'related'
+    });
+    registerLinks('#anime_recommendation li.btn-anime > a.link, #manga_recommendation li.btn-manga > a.link, #manga_recommendation li.btn-anime > a.link', {
+        context: 'overlay',
+        elementGetter: function (link) { return link.querySelector(':scope > span.title'); },
+        infoGetter: function (link) { return getRecommendationMediaInfo(link, currentMedia); },
+        placement: 'overlay'
+    });
+    if (location.pathname.includes('/userrecs'))
+    {
+        document.querySelectorAll('[style*="margin-bottom: 2px"]').forEach(function (container)
+        {
+            const link = container.querySelector(':scope > a[href]');
+            if (link) registerTitle(link, getMediaInfo(link, currentMedia.type));
+        });
+    }
+}
+
+function scanRecommendationsPage()
+{
+    registerLinks('.spaceit.borderClass a[href]', {
+        filter: function (link)
+        {
+            const next = link.nextElementSibling;
+            return Boolean(link.querySelector('strong')) && !(next && next.getAttribute('style') === 'font-weight:bold');
+        }
+    });
+}
+
+function scanSearchPages(path)
+{
+    if (path.startsWith('/search/'))
+    {
+        registerLinks('a.fw-b.fl-l[href*="/anime/"]', { type: 'anime', placement: 'before-parent' });
+        registerLinks('a.fw-b[href*="/manga/"]', { type: 'manga' });
+    }
+    else if (path === '/anime.php')
+    {
+        registerLinks('a.fw-b.fl-l[href*="/anime/"]', { type: 'anime', placement: 'before-parent' });
+        registerLinks('#contentWrapper li.btn-anime > a.link[href*="/anime/"]', {
+            type: 'anime',
+            context: 'overlay',
+            elementGetter: function (link) { return link.querySelector(':scope > span.title, :scope > h3 > span.title'); },
+            placement: 'overlay'
+        });
+        registerLinks('#contentWrapper .auto-recommendations[data-category="anime"] .items > a.item[href*="/anime/"]', {
+            type: 'anime',
+            context: 'auto-carousel',
+            elementGetter: function (link) { return link.querySelector(':scope > span.title'); },
+            placement: 'inside-before'
+        });
+    }
+    else if (path === '/manga.php') registerLinks('a.fw-b[href*="/manga/"]', { type: 'manga' });
+}
+
+function scanBrowsePages(path)
+{
+    if (path === '/topanime.php') registerLinks('.fl-l.fs14.fw-b.anime_ranking_h3 > a[href]', { type: 'anime' });
+    else if (path === '/topmanga.php') registerLinks('a.hoverinfo_trigger.fs14.fw-b[href]', { type: 'manga' });
+    else if (path.startsWith('/anime/season')) registerLinks('a.link-title[href]', { type: 'anime', tile: true });
+    else if (path === '/reviews.php') registerLinks('.review-element .titleblock a.title[href]');
+}
+
+function scanViewStylePage(path)
+{
+    const type = path.startsWith('/anime/') ? 'anime' : 'manga';
+    if (document.querySelector('.js-btn-view-style.seasonal.on'))
+    {
+        registerLinks('a.link-title[href]', {
+            type: type,
+            placement: type === 'anime' ? 'before-parent' : 'before',
+            tile: true
+        });
+    }
+    else if (document.querySelector('.js-btn-view-style.list.on'))
+    {
+        registerLinks('a.hoverinfo_trigger.fw-b[href]', { type: type });
+    }
+}
+
+function scanCommunityPages(path)
+{
+    if (path === '/clubs.php')
+    {
+        registerTextMediaLinks('.borderClass > a[href]', { context: 'table' });
+    }
+    else if (/^\/character\/[1-9][0-9]*(?:\/|$)/.test(path))
+    {
+        registerTextMediaLinks('td.borderClass a[href*="/anime/"], td.borderClass a[href*="/manga/"]', { context: 'character' });
+    }
+    else if (path === '/blog.php')
+    {
+        registerLinks(
+            'a.dark_text[href*="/anime/"], a.dark_text[href*="/manga/"], ' +
+            '#content > div > a[href*="/anime/"], #content > div > a[href*="/manga/"]',
+            { context: 'blog', parenthetical: true, placement: 'after' }
+        );
+    }
+}
+
+function scanProfilePage(path)
+{
+    if (!/^\/profile\/[^/]+(?:\/|$)/.test(path)) return;
+
+    registerLinks('.statistics-updates .data > a[href*="/anime/"], .statistics-updates .data > a[href*="/manga/"]', {
+        context: 'profile'
+    });
+    registerLinks('.review-element .titleblock a.title[href]');
+
+    if (/\/recommendations\/?$/.test(path))
+    {
+        registerLinks('#contentWrapper a[href*="/anime/"] > strong, #contentWrapper a[href*="/manga/"] > strong', {
+            elementGetter: function (strong) { return strong.parentElement; },
+            infoGetter: function (strong) { return getMediaInfo(strong.parentElement); }
+        });
+    }
+}
+
+function scanStackPage()
+{
+    const viewButton = document.querySelector('.view-style2 a.on');
+    const tileView = Boolean(viewButton && viewButton.classList.contains('tile'));
+    const seasonalView = Boolean(viewButton && viewButton.classList.contains('seasonal'));
+    if (tileView)
+    {
+        registerLinks('.seasonal-anime .title > a[href*="/anime/"], .seasonal-anime .title > a[href*="/manga/"]', {
+            tile: true, tileTitle: true
+        });
+    }
+    else
+    {
+        registerLinks('a.link-title[href*="/anime/"], a.link-title[href*="/manga/"]', {
+            placement: seasonalView ? 'before' : 'before-parent', tile: seasonalView
+        });
+    }
+}
+
+function scanProducerPage()
+{
+    if (document.querySelector('.js-btn-view-style2.tile.on'))
+    {
+        registerLinks('.seasonal-anime.js-seasonal-anime.js-anime-type-all > .title > a[href]', {
+            type: 'anime', tile: true, tileTitle: true
+        });
+    }
+    else if (document.querySelector('.js-btn-view-style2.seasonal.on'))
+    {
+        registerLinks('a.link-title[href]', { type: 'anime', tile: true });
+    }
+    else if (document.querySelector('.js-btn-view-style2.list.on'))
+    {
+        registerLinks('.spaceit_pad > a[href]', { type: 'anime' });
+    }
+}
+
+function scanLegacyPages(path)
+{
+    if (path === '/shared.php')
+    {
+        const type = new URL(location.href).searchParams.get('type') === 'manga' ? 'manga' : 'anime';
+        registerTextMediaLinks(`a[href*="/${type}/"]:not(.Lightbox_AddEdit)`, { type: type });
+    }
+    else if (path.startsWith('/history'))
+    {
+        registerTextMediaLinks('a[href*="/anime.php?id="]', { type: 'anime' });
+        registerTextMediaLinks('a[href*="/manga.php?id="]', { type: 'manga' });
+    }
+    else if (path.startsWith('/people'))
+    {
+        registerTextMediaLinks('a[href*="/anime/"]:not(.Lightbox_AddEdit), a[href*="/manga/"]:not(.Lightbox_AddEdit)');
+    }
+}
+
+function scanRequestedPages(path)
+{
+    if (path === '/character.php')
+    {
+        registerLinks('td.animeography div.title > a[href], td.mangaography div.title > a[href]', { context: 'table' });
+    }
+    else if (path === '/company' || path === '/company/')
+    {
+        registerLinks('tr.ranking-list td.score p > a[href], tr.ranking-list td.popularity p > a[href]', { context: 'table' });
+    }
+    else if (/^\/watch\/(episode|promotion)(?:\/|$)/.test(path))
+    {
+        registerLinks('.video-info-title > a.mr4[href]', { context: 'watch' });
+    }
+}
+
+function scanPageTitles()
+{
+    const path = location.pathname;
+    const currentMedia = getCurrentMediaInfo();
+    if (path === '/') scanHomePage();
+    if (currentMedia) scanMediaDetailPage(currentMedia);
+    if (path === '/recommendations.php') scanRecommendationsPage();
+    if (path.startsWith('/animelist/') || path.startsWith('/mangalist/')) registerLinks('.data.title > a[href]');
+    scanSearchPages(path);
+    scanBrowsePages(path);
+    if (path.startsWith('/anime/genre/') || path.startsWith('/manga/genre/') || path.startsWith('/manga/adapted') || path.startsWith('/manga/magazine/')) scanViewStylePage(path);
+    if (path.startsWith('/stacks/')) scanStackPage();
+    if (path.startsWith('/anime/producer')) scanProducerPage();
+    scanCommunityPages(path);
+    scanProfilePage(path);
+    scanLegacyPages(path);
+    scanRequestedPages(path);
+    registerLinks('.ranking-container ol > li > a[href]', { context: 'ranking' });
+}
+
+function scheduleTitleScan()
+{
+    if (scanScheduled) return;
+    scanScheduled = true;
+    requestAnimationFrame(function ()
+    {
+        scanScheduled = false;
+        scanPageTitles();
+    });
+}
+
+function observeDynamicTitles()
+{
+    const root = document.getElementById('contentWrapper') || document.body;
+    new MutationObserver(scheduleTitleScan).observe(root, { childList: true, subtree: true });
+}
+
+(async function initialize()
+{
+    storedAnime = await GM.getValue(CONFIG.STORAGE.ANIME) || {};
+    storedManga = await GM.getValue(CONFIG.STORAGE.MANGA) || {};
+    const savedMode = await GM.getValue(CONFIG.STORAGE.MODE);
+    if (TITLE_MODE_OPTIONS.some(function (option) { return option.value === savedMode; })) titleDisplayMode = savedMode;
+    initializeTitleModeControl();
+    await maybeShowTitleModeUpdateNotice();
+    await cacheCurrentMediaTitle();
+    scanPageTitles();
+    observeDynamicTitles();
 })();
