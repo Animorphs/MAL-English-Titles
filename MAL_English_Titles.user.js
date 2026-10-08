@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MAL English Titles
-// @version      3.0.0
+// @version      3.0.1
 // @description  Add English Titles to various MyAnimeList pages, whilst still displaying Japanese Titles
 // @author       Animorphs
 // @grant        GM.setValue
@@ -54,10 +54,13 @@ const TITLE_STYLES = `
         content: ''; left: 11px; position: absolute;
     }
     .eng-title-mode-ownlist .eng-title-mode-option[aria-checked="true"]::before { content: '\\2713'; }
-    #nav > .eng-title-mode-nav { margin-right: 4.5px; }
-    #nav > .eng-title-mode-nav > .eng-title-mode-nav-trigger {
-        text-align: center; text-indent: 0; white-space: nowrap; width: 72px;
+    #menu_left #nav > li.eng-title-mode-nav {
+        float: left; margin: 0; position: relative; width: 86px; z-index: 1000;
     }
+    #menu_left #nav > li.eng-title-mode-nav > .eng-title-mode-nav-trigger {
+        text-align: center; text-indent: 0; white-space: nowrap; width: auto;
+    }
+    #menu_left #nav > li.eng-title-mode-nav > ul { top: 34px; z-index: 1001; }
     .eng-title-mode-nav.hover > ul { display: block !important; }
     .eng-title-mode-nav .eng-title-mode-option { white-space: nowrap; }
     .eng-title-mode-nav .eng-title-mode-option::before {
@@ -315,8 +318,25 @@ function initializeNavigationTitleModeControl()
         <ul class="x2-wider" role="radiogroup" aria-label="Title display">
             ${getModeOptionsHtml('a')}
         </ul>`;
-    const eventItem = Array.from(nav.children).find(function (item) { return item.classList.contains('bunkasai'); });
-    nav.insertBefore(control, eventItem || null);
+    function placeAfterHelp()
+    {
+        const helpItem = Array.from(nav.children).find(function (item)
+        {
+            const link = item.querySelector(':scope > a.non-link');
+            return link && link.textContent.trim() === 'Help';
+        });
+        if (helpItem && helpItem.nextElementSibling !== control)
+        {
+            nav.insertBefore(control, helpItem.nextElementSibling);
+        }
+        else if (!helpItem && control.parentElement !== nav)
+        {
+            nav.appendChild(control);
+        }
+    }
+
+    placeAfterHelp();
+    new MutationObserver(placeAfterHelp).observe(nav, { childList: true });
     bindTitleModeOptions(control);
     control.addEventListener('mouseenter', function () { control.classList.add('hover'); });
     control.addEventListener('mouseleave', function () { control.classList.remove('hover'); });
